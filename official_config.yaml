@@ -1,0 +1,463 @@
+# url 里填写自己的订阅,名称不能重复
+proxy-providers:
+  provider1:
+    url: "https://47.238.198.94/iv/verify_mode.htm?token=456f6c8ca67fe2fa97eb1e3510beb0cd"
+    type: http
+    interval: 21600
+    path: ./proxy_providers/nano.yaml # 关键：固定落盘位置，方便你对比
+    header:
+      User-Agent:
+        - "FlClash/v0.8.91 clash-verge Platform/windows"
+    health-check:
+      {
+        enable: true,
+        url: "https://www.gstatic.com/generate_204",
+        interval: 300,
+      }
+    override:
+      additional-prefix: "[nano]"
+
+  # provider2:
+  #   url: ""
+  #   type: http
+  #   interval: 86400
+  #   health-check:
+  #     {
+  #       enable: true,
+  #       url: "https://www.gstatic.com/generate_204",
+  #       interval: 300,
+  #     }
+  #   override:
+  #     additional-prefix: "[provider2]"
+
+proxies:
+  - name: "直连"
+    type: direct
+    udp: true
+
+mixed-port: 7890
+bind-address: 127.0.0.1
+ipv6: true
+allow-lan: false
+unified-delay: true
+tcp-concurrent: true
+external-controller: 127.0.0.1:9090
+external-ui: ui
+
+find-process-mode: strict
+global-client-fingerprint: chrome
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+sniffer:
+  enable: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+  skip-domain:
+    - "Mijia Cloud"
+    - "+.push.apple.com"
+
+tun:
+  enable: false
+  stack: mixed
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+  auto-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - +.lan
+    - +.local
+    - time.*.com
+    - ntp.*.com
+    - stun.*.*
+    - stun.*.*.*
+    - +.market.xiaomi.com
+
+    # QQ快速登录检测
+    - localhost.ptlogin2.qq.com
+    - localhost.sec.qq.com
+    # 微信快速登录检测
+    - localhost.work.weixin.qq.com
+
+    # Windows 网络连接检测（校园网认证相关）
+    - +.msftconnecttest.com
+    - +.msftncsi.com
+
+    - connectivity-check_domain
+    - private_domain
+    - category-ntp_domain
+    - cn_domain
+  default-nameserver:
+    - 223.5.5.5
+    - 223.6.6.6
+  use-hosts: false
+  use-system-hosts: true
+  fallback: []
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+  proxy-server-nameserver:
+    - https://223.5.5.5/dns-query
+    - https://223.6.6.6/dns-query
+  direct-nameserver:
+    - https://223.5.5.5/dns-query
+    - https://223.6.6.6/dns-query
+  respect-rules: true #让连接DNS服务器时能够遵循规则，也就是通过代理节点连接到上面设置的国外DNS，因为直连可能连接不上
+
+# dns:
+#   enable: true
+#   prefer-h3: false
+#   cache-algorithm: arc
+#   ipv6: true
+#   enhanced-mode: fake-ip
+#   fake-ip-range: 198.18.0.1/16
+#   fake-ip-range6: fc00::/18
+#   use-hosts: true
+#   use-system-hosts: true
+#   respect-rules: false
+#   rebind: false
+#   default-nameserver:
+#     - system
+#   proxy-server-nameserver:
+#     - system
+#   nameserver:
+#     - system
+#   fake-ip-filter:
+#     - connectivity-check_domain
+#     - private_domain
+#     - cn_domain
+#     - +.stun.*.*
+#     - +.stun.*.*.*
+#     - +.stun.*.*.*.*
+#     - +.stun.*.*.*.*.*
+#     - "*.n.n.srv.nintendo.net"
+#     - +.stun.playstation.net
+#     - xbox.*.*.microsoft.com
+#     - "*.*.xboxlive.com"
+#     - +.msftncsi.com
+#     - +.msftconnecttest.com
+#     - +.teracloud.jp
+#     - +.lan
+#     # QQ快速登录检测
+#     - localhost.ptlogin2.qq.com
+#     - localhost.sec.qq.com
+#     # 微信快速登录检测
+#     - localhost.work.weixin.qq.com
+#     - WORKGROUP
+
+proxy-groups:
+  - name: 默认
+    type: select
+    proxies:
+      [自动选择, 直连, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点]
+
+  - name: Gemini
+    type: select
+    proxies: [AI, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
+
+  - name: Google
+    type: select
+    proxies:
+      [AI, 默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
+
+  - name: OpenAI
+    type: select
+    proxies: [AI, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
+
+  - name: Anthropic
+    type: select
+    proxies: [AI, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
+
+  - name: Telegram
+    type: select
+    proxies:
+      [默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择, 直连]
+
+  - name: Twitter
+    type: select
+    proxies:
+      [默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择, 直连]
+
+  - name: 哔哩哔哩
+    type: select
+    proxies:
+      [直连, 默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
+
+  - name: 巴哈姆特
+    type: select
+    proxies:
+      [默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择, 直连]
+
+  - name: YouTube
+    type: select
+    proxies:
+      [默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择, 直连]
+
+  - name: NETFLIX
+    type: select
+    proxies:
+      [默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择, 直连]
+
+  - name: Spotify
+    type: select
+    proxies:
+      [默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择, 直连]
+
+  - name: Github
+    type: select
+    proxies:
+      [默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择, 直连]
+
+  - name: 其他
+    type: select
+    proxies:
+      [默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择, 直连]
+
+  #分隔,下面是地区分组
+  - name: 香港
+    type: select
+    include-all: true
+    exclude-type: direct
+    filter: "(?i)香港|香江|港|香|hk|hongkong|hong kong"
+
+  - name: 台湾
+    type: select
+    include-all: true
+    exclude-type: direct
+    filter: "(?i)台|tw|taiwan"
+
+  - name: 日本
+    type: select
+    include-all: true
+    exclude-type: direct
+    filter: "(?i)日本|东京|日|jp|japan"
+
+  - name: 美国
+    type: select
+    include-all: true
+    exclude-type: direct
+    filter: "(?i)美国|西美|美|us|unitedstates|united states"
+
+  - name: 新加坡
+    type: select
+    include-all: true
+    exclude-type: direct
+    filter: "(?i)新加坡|狮城|新|狮|sg|singapore"
+
+  - name: 其它地区
+    type: select
+    include-all: true
+    exclude-type: direct
+    filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|香港|香江|港|香|hk|hongkong|hong kong|台湾|台|tw|taiwan|日本|东京|日|jp|japan|新加坡|狮城|新|狮|sg|singapore|美国|西美|美|us|unitedstates|united states)).*"
+
+  - name: 全部节点
+    type: select
+    include-all: true
+    exclude-type: direct
+
+  - name: 自动选择
+    type: url-test
+    include-all: true
+    exclude-type: direct
+    url: "https://www.gstatic.com/generate_204"
+    interval: 600
+    tolerance: 10
+
+  - name: AI
+    type: select
+    proxies:
+      - AI-AUTO(无HK)
+      - 美国
+      - 日本
+      - 新加坡
+      - 台湾
+      - 其它地区
+      - 全部节点
+
+  - name: AI-AUTO(无HK)
+    type: url-test
+    exclude-filter: "(?i)港|香|hk|hongkong|hong kong" # 排除香港地区节点
+    include-all: true
+    exclude-type: direct
+    url: "https://www.gstatic.com/generate_204"
+    interval: 600
+    tolerance: 10
+
+rules:
+  # Windows 网络连接检测（校园网认证相关）- 必须直连
+  - DOMAIN-SUFFIX,msftconnecttest.com,直连
+  - DOMAIN-SUFFIX,msftncsi.com,直连
+  - DOMAIN-SUFFIX,wscon.microsoft.com,直连
+
+  # cpprefernece.com 连接异常，暂时加入直连
+  - DOMAIN-SUFFIX,cppreference.com,直连
+
+  - RULE-SET,private_domain,直连
+  - RULE-SET,private_ip,直连,no-resolve
+  #####
+  - DOMAIN-SUFFIX,ping0.cc,AI
+  - DOMAIN-SUFFIX,ipdata.co,AI
+  - DOMAIN-SUFFIX,pingip.cn,AI
+  - DOMAIN-SUFFIX,ipip.net,AI
+  - DOMAIN-SUFFIX,teracloud.jp,其他
+  - DOMAIN,stun.l.google.com,直连
+  - DOMAIN-SUFFIX,edu.cn,直连
+  - DOMAIN-SUFFIX,mathworks.com,直连
+  - DOMAIN-SUFFIX,ieeexplore.ieee.org,直连
+  ##### 域名分流规则区
+  # AI服务专用分流
+  - RULE-SET,openai_domain,OpenAI
+  - RULE-SET,anthropic_domain,Anthropic
+  - RULE-SET,gemini_domain,Gemini
+  - RULE-SET,category-ai-!cn_domain,AI
+  - RULE-SET,category-ai-cn_domain,直连
+  # 其他分流
+  - RULE-SET,github_domain,Github
+  - RULE-SET,twitter_domain,Twitter
+  - RULE-SET,youtube_domain,YouTube
+  - RULE-SET,telegram_domain,Telegram
+  - RULE-SET,netflix_domain,NETFLIX
+  - RULE-SET,bilibili_domain,哔哩哔哩
+  - RULE-SET,bahamut_domain,巴哈姆特
+  - RULE-SET,spotify_domain,Spotify
+  - RULE-SET,category-scholar-!cn_domain,其他
+  - RULE-SET,onedrive_domain,其他
+  - RULE-SET,steam@cn_domain,直连
+  - RULE-SET,epicgames@cn_domain,直连
+  - RULE-SET,category-game-platforms-download@cn_domain,直连
+  - RULE-SET,category-games@cn_domain,直连
+  - RULE-SET,microsoft@cn_domain,直连
+  - RULE-SET,apple-cn_domain,直连
+  - RULE-SET,google_domain,Google
+  ##### 国内外域名兜底分流
+  - RULE-SET,geolocation-!cn,其他
+  - RULE-SET,cn_domain,直连
+  ##### IP分流规则区
+  - RULE-SET,google_ip,Google
+  - RULE-SET,netflix_ip,NETFLIX
+  - RULE-SET,telegram_ip,Telegram
+  - RULE-SET,twitter_ip,Twitter
+  - RULE-SET,cn_ip,直连
+  ##### 总体兜底规则
+  - MATCH,其他
+
+rule-anchor:
+  ip: &ip { type: http, interval: 86400, behavior: ipcidr, format: mrs }
+  domain: &domain { type: http, interval: 86400, behavior: domain, format: mrs }
+rule-providers:
+  private_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"
+  connectivity-check_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/connectivity-check.mrs"
+  category-ntp_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ntp.mrs"
+  cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"
+  github_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs"
+  twitter_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.mrs"
+  openai_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/openai.mrs"
+  anthropic_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/anthropic.mrs"
+  gemini_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-gemini.mrs"
+  category-ai-!cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.mrs"
+  category-ai-cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-cn.mrs"
+  youtube_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs"
+  google_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs"
+  onedrive_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/onedrive.mrs"
+  microsoft@cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft@cn.mrs"
+  apple-cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple-cn.mrs"
+  telegram_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs"
+  netflix_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.mrs"
+  bilibili_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/bilibili.mrs"
+  bahamut_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/bahamut.mrs"
+  spotify_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/spotify.mrs"
+  steam@cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam@cn.mrs"
+  epicgames@cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/epicgames@cn.mrs"
+  category-game-platforms-download@cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-game-platforms-download@cn.mrs"
+  category-games@cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-games@cn.mrs"
+  category-scholar-!cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-scholar-!cn.mrs"
+  geolocation-!cn:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs"
+
+  private_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs"
+  cn_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"
+  google_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.mrs"
+  netflix_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.mrs"
+  twitter_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/twitter.mrs"
+  telegram_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs"
