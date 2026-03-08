@@ -7,6 +7,7 @@
 - `official_config.yaml`: 当前主配置。
 - `my_config.yaml`: 早期或备用配置。
 - `mihomo.xml`: Windows 计划任务导出文件。
+- `mihomo_common.ps1`: 控制脚本共享函数和公共配置。
 - `start_mihomo_with_system_proxy.ps1`: 启动/切换到系统代理模式。
 - `start_mihomo_with_tun.ps1`: 启动/切换到 TUN 模式。
 - `switch_mode.ps1`: 在系统代理模式和 TUN 模式之间切换。
@@ -82,6 +83,7 @@ C:\Users\YYH\OneDrive\Software\mihomo\mihomo-windows-amd64.exe -d .\ -f official
 ### `start_mihomo_with_system_proxy.ps1`
 
 - 如果计划任务还没运行，先启动任务 `mihomo`
+- 等待控制器 `127.0.0.1:9090` 就绪后再切换模式
 - 开启 Windows 系统代理到 `127.0.0.1:7890`
 - 关闭 mihomo 的 TUN 模式
 - 适合浏览器和遵循系统代理的应用
@@ -92,9 +94,16 @@ C:\Users\YYH\OneDrive\Software\mihomo\mihomo-windows-amd64.exe -d .\ -f official
 powershell -ExecutionPolicy Bypass -File .\start_mihomo_with_system_proxy.ps1
 ```
 
+启用弹窗通知：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start_mihomo_with_system_proxy.ps1 -ShowNotification
+```
+
 ### `start_mihomo_with_tun.ps1`
 
 - 如果计划任务还没运行，先启动任务 `mihomo`
+- 等待控制器 `127.0.0.1:9090` 就绪后再切换模式
 - 关闭 Windows 系统代理
 - 通过控制器 API 启用 mihomo 的 TUN 模式
 - 适合不遵循系统代理的应用
@@ -105,9 +114,16 @@ powershell -ExecutionPolicy Bypass -File .\start_mihomo_with_system_proxy.ps1
 powershell -ExecutionPolicy Bypass -File .\start_mihomo_with_tun.ps1
 ```
 
+启用弹窗通知：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start_mihomo_with_tun.ps1 -ShowNotification
+```
+
 ### `switch_mode.ps1`
 
 - 检查当前系统代理是否开启
+- 如有需要，自动启动计划任务并等待控制器就绪
 - 如果已开启，则切换为 TUN 模式
 - 如果未开启，则切换为系统代理模式
 
@@ -117,15 +133,34 @@ powershell -ExecutionPolicy Bypass -File .\start_mihomo_with_tun.ps1
 powershell -ExecutionPolicy Bypass -File .\switch_mode.ps1
 ```
 
+启用弹窗通知：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\switch_mode.ps1 -ShowNotification
+```
+
 ### `turnoff_system_proxy.ps1`
 
 - 关闭 Windows 系统代理
 - 不负责关闭 mihomo 进程
 
+运行示例：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\turnoff_system_proxy.ps1
+```
+
 ### `kill_mihomo.ps1`
 
-- 结束 `mihomo-windows-amd64.exe`
+- 关闭系统代理
+- 优先停止计划任务，再兜底结束 `mihomo-windows-amd64.exe`
 - 同时清理 DNS 缓存
+
+运行示例：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\kill_mihomo.ps1
+```
 
 ## 控制器接口
 
@@ -143,6 +178,7 @@ powershell -ExecutionPolicy Bypass -File .\switch_mode.ps1
 
 - `official_config.yaml` 中的 `external-controller` 与脚本一致
 - 如果后续给控制器加了 `secret`，脚本中的 `$api_secret` 也要同步修改
+- 公共配置已集中到 `mihomo_common.ps1`，后续修改端口、任务名、控制器地址优先改这里
 
 ## 使用建议
 

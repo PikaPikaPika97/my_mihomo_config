@@ -5,6 +5,7 @@
 !/official_config.yaml
 !/my_config.yaml
 !/kill_mihomo.ps1
+!/mihomo_common.ps1
 !/start_mihomo_with_system_proxy.ps1
 !/start_mihomo_with_tun.ps1
 !/switch_mode.ps1

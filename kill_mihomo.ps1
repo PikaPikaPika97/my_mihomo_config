@@ -1,8 +1,14 @@
-$process = "mihomo-windows-amd64"
+param(
+    [switch]$ShowNotification
+)
 
-Set-ItemProperty -Path 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Name ProxyEnable -Value 0
-Write-Host "System proxy disabled."
-Stop-Process -Name $process -Force > $null 2>&1
-Write-Host "${process} stopped."
-Clear-DnsClientCache
-Start-Sleep -Seconds 1
+$ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\mihomo_common.ps1"
+
+try {
+    Invoke-StopMihomo -ShowNotification:$ShowNotification
+}
+catch {
+    Write-Host "❌ 关闭 mihomo 失败: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}
