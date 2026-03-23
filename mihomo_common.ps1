@@ -72,13 +72,8 @@ function Refresh-WinInetProxy {
     rundll32.exe wininet.dll,InternetSetOptionA 0 37 0 0 | Out-Null
 }
 
-function Set-SystemProxyEnabled {
-    $proxyOverride = ($script:DefaultProxyBypass + $script:ProxyBypassDomains) -join ';'
-
-    Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyEnable -Value 1
-    Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyServer -Value "127.0.0.1:$($script:MihomoConfig.ProxyPort)"
-    Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyOverride -Value $proxyOverride
-    Refresh-WinInetProxy
+function Get-SystemProxyOverride {
+    return ($script:DefaultProxyBypass + $script:ProxyBypassDomains) -join ';'
 }
 
 function Set-SystemProxyDisabled {
@@ -93,12 +88,14 @@ function Set-SystemProxyServer {
         [string]$Server
     )
 
-    $proxyOverride = ($script:DefaultProxyBypass + $script:ProxyBypassDomains) -join ';'
-
     Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyEnable -Value 1
     Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyServer -Value $Server
-    Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyOverride -Value $proxyOverride
+    Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyOverride -Value (Get-SystemProxyOverride)
     Refresh-WinInetProxy
+}
+
+function Set-SystemProxyEnabled {
+    Set-SystemProxyServer -Server "127.0.0.1:$($script:MihomoConfig.ProxyPort)"
 }
 
 function Test-TcpEndpoint {
@@ -151,12 +148,16 @@ function Get-SystemProxyEnabled {
     return [bool](Get-ItemPropertyValue -Path $script:MihomoConfig.RegistryPath -Name ProxyEnable)
 }
 
-function Test-MihomoControllerAvailable {
+function Invoke-MihomoControllerVersionRequest {
     $uri = "$($script:MihomoConfig.ControllerApi)/version"
     $headers = Get-MihomoHeaders
 
+    return Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec $script:MihomoConfig.RequestTimeoutSec -Method GET
+}
+
+function Test-MihomoControllerAvailable {
     try {
-        $null = Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec $script:MihomoConfig.RequestTimeoutSec -Method GET
+        $null = Invoke-MihomoControllerVersionRequest
         return $true
     }
     catch {
@@ -171,11 +172,10 @@ function Wait-MihomoControllerReady {
 
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     $uri = "$($script:MihomoConfig.ControllerApi)/version"
-    $headers = Get-MihomoHeaders
 
     while ((Get-Date) -lt $deadline) {
         try {
-            $null = Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec $script:MihomoConfig.RequestTimeoutSec -Method GET
+            $null = Invoke-MihomoControllerVersionRequest
             return
         }
         catch {
