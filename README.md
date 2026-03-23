@@ -21,6 +21,29 @@
 - turnoff_system_proxy.ps1：仅关闭系统代理
 - kill_mihomo.ps1：关闭代理并停止 mihomo
 
+## 仓库结构
+
+```text
+mihomo/
+├─ official_config.template.yaml   # 主模板（可提交）
+├─ config.local.example.yaml       # 本地覆盖示例（可提交）
+├─ config.local.yaml               # 本地覆盖（不提交）
+├─ official_config.yaml            # 生成后的运行配置（不提交）
+├─ scripts/
+│  └─ generate_config.py           # 配置生成脚本
+├─ proxy_providers/                # provider 下载结果（不提交）
+├─ rules/                          # 规则下载结果（不提交）
+├─ ui/                             # 外部面板资源（不提交）
+├─ mihomo_common.ps1               # 脚本公共参数
+├─ start_mihomo_with_system_proxy.ps1
+├─ start_mihomo_with_tun.ps1
+├─ switch_mode.ps1
+├─ use_desktop_mihomo.ps1
+├─ use_local_mihomo.ps1
+├─ turnoff_system_proxy.ps1
+└─ kill_mihomo.ps1
+```
+
 ## 快速开始
 
 ### 1. 准备本地配置
@@ -73,6 +96,32 @@ python .\scripts\generate_config.py
 mihomo-windows-amd64.exe -d .\ -f official_config.yaml
 ```
 
+## 运行方法
+
+### 方式 A：前台直接运行（调试最方便）
+
+```powershell
+.\mihomo-windows-amd64.exe -d .\ -f .\official_config.yaml
+```
+
+### 方式 B：登录后自动运行（推荐日常）
+
+1. 导入 mihomo.xml 或手动创建计划任务。
+2. 任务启动命令保持：
+
+```powershell
+mihomo-windows-amd64.exe -d .\ -f official_config.yaml
+```
+
+3. 日常通过下面的脚本切换模式，不直接改配置文件。
+
+### 方式 C：脚本控制运行模式
+
+- 系统代理模式：启动任务（如未运行）并切到系统代理
+- TUN 模式：启动任务（如未运行）并切到 TUN
+- 工位模式：切到台式机热点中的代理
+- 本机模式：切回 127.0.0.1:7890
+
 ## 计划任务（最简）
 
 可直接导入 mihomo.xml；若手动创建，关键项如下：
@@ -96,61 +145,69 @@ C:\Users\YYH\OneDrive\Software\mihomo
 - 系统代理模式：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\start_mihomo_with_system_proxy.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\start_mihomo_with_system_proxy.ps1
 ```
 
 - TUN 模式：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\start_mihomo_with_tun.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\start_mihomo_with_tun.ps1
 ```
 
 - 自动切换模式：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\switch_mode.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\switch_mode.ps1
 ```
 
 - 工位模式（使用台式机热点代理）：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\use_desktop_mihomo.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\use_desktop_mihomo.ps1
 ```
 
 自定义工位代理地址：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\use_desktop_mihomo.ps1 -Server "192.168.137.1:7890"
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\use_desktop_mihomo.ps1 -Server "192.168.137.1:7890"
 ```
 
 - 切回本机代理：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\use_local_mihomo.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\use_local_mihomo.ps1
 ```
 
 - 关闭系统代理：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\turnoff_system_proxy.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\turnoff_system_proxy.ps1
 ```
 
 - 停止 mihomo：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\kill_mihomo.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\kill_mihomo.ps1
 ```
 
 ## 控制器与一致性
 
-脚本通过控制器接口切换 TUN：PATCH /configs。
+脚本通过控制器接口切换 TUN：
 
-默认控制器地址：127.0.0.1:9090
+```text
+PATCH /configs
+```
+
+默认控制器地址：
+
+```text
+127.0.0.1:9090
+```
 
 请保持以下一致：
-- official_config.yaml 的 external-controller
+- official_config.yaml 的 external-controller 字段
 - mihomo_common.ps1 中控制器地址/任务名/端口
-- 若启用 secret，脚本中的 ApiSecret 也要同步
+- 若启用 secret，脚本中的 ApiSecret 参数也要同步
 
 ## 常见问题
 
