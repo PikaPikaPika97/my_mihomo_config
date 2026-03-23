@@ -87,8 +87,81 @@ function Set-SystemProxyDisabled {
     Refresh-WinInetProxy
 }
 
+function Set-SystemProxyServer {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Server
+    )
+
+    $proxyOverride = ($script:DefaultProxyBypass + $script:ProxyBypassDomains) -join ';'
+
+    Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyEnable -Value 1
+    Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyServer -Value $Server
+    Set-ItemProperty -Path $script:MihomoConfig.RegistryPath -Name ProxyOverride -Value $proxyOverride
+    Refresh-WinInetProxy
+}
+
+function Test-TcpEndpoint {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Server,
+        [int]$TimeoutMs = 1500
+    )
+
+    $separatorIndex = $Server.LastIndexOf(':')
+    if ($separatorIndex -lt 1) {
+        throw "代理地址格式无效，应为 host:port: $Server"
+    }
+
+    $host = $Server.Substring(0, $separatorIndex)
+    if ($host.StartsWith('[') -and $host.EndsWith(']')) {
+        $host = $host.Substring(1, $host.Length - 2)
+    }
+
+    $portText = $Server.Substring($separatorIndex + 1)
+    $port = 0
+    if (-not [int]::TryParse($portText, [ref]$port)) {
+        throw "代理端口无效: $Server"
+    }
+
+    $client = [System.Net.Sockets.TcpClient]::new()
+    $asyncResult = $null
+
+    try {
+        $asyncResult = $client.BeginConnect($host, $port, $null, $null)
+        if (-not $asyncResult.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+            return $false
+        }
+
+        $client.EndConnect($asyncResult) | Out-Null
+        return $client.Connected
+    }
+    catch {
+        return $false
+    }
+    finally {
+        if ($asyncResult) {
+            $asyncResult.AsyncWaitHandle.Close()
+        }
+        $client.Dispose()
+    }
+}
+
 function Get-SystemProxyEnabled {
     return [bool](Get-ItemPropertyValue -Path $script:MihomoConfig.RegistryPath -Name ProxyEnable)
+}
+
+function Test-MihomoControllerAvailable {
+    $uri = "$($script:MihomoConfig.ControllerApi)/version"
+    $headers = Get-MihomoHeaders
+
+    try {
+        $null = Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec $script:MihomoConfig.RequestTimeoutSec -Method GET
+        return $true
+    }
+    catch {
+        return $false
+    }
 }
 
 function Wait-MihomoControllerReady {
@@ -202,6 +275,36 @@ function Invoke-TurnOffSystemProxy {
     Show-MihomoNotification `
         -Title '系统代理设置' `
         -Message '系统代理已成功关闭' `
+        -ShowNotification:$ShowNotification
+}
+
+function Invoke-RemoteSystemProxyMode {
+    param(
+        [string]$Server = '192.168.137.1:7890',
+        [switch]$ShowNotification
+    )
+
+    if (-not (Test-TcpEndpoint -Server $Server)) {
+        throw "目标代理不可达: $Server"
+    }
+
+    Write-MihomoStatus "✅ 已确认远端 mihomo 可达 ($Server)" -Color DarkGray
+
+    if (Test-MihomoControllerAvailable) {
+        Set-TunMode -Enable $false
+        Write-MihomoStatus '✅ 已确保本机 TUN 模式关闭' -Color DarkGray
+    }
+    else {
+        Write-MihomoStatus 'ℹ️ 本机 mihomo 控制器不可达，跳过 TUN 处理' -Color Yellow
+    }
+
+    Set-SystemProxyServer -Server $Server
+
+    Write-MihomoStatus "✅ 系统代理已切换到台式机 mihomo ($Server)"
+    Write-MihomoStatus '✅ 当前处于工位模式，本机 mihomo 不作为系统代理出口'
+    Show-MihomoNotification `
+        -Title '远端代理模式已启用' `
+        -Message "系统代理已指向 $Server`n当前处于工位模式" `
         -ShowNotification:$ShowNotification
 }
 

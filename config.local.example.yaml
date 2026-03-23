@@ -1,0 +1,45 @@
+# 每台机器各自复制一份为 config.local.yaml，并填写自己的敏感配置。
+# 这个文件不进入版本控制。
+#
+# proxy-providers 整体放在本地文件里维护，因为不同机场的 provider 结构差异可能很大。
+
+proxy-providers:
+  provider1:
+    url: "https://example.com/your-subscription"
+    type: http
+    interval: 21600
+    path: ./proxy_providers/nano.yaml # 关键：固定落盘位置，方便你对比
+    header:
+      User-Agent:
+        - "FlClash/v0.8.91 clash-verge Platform/windows"
+    health-check:
+      {
+        enable: true,
+        url: "https://www.gstatic.com/generate_204",
+        interval: 300,
+      }
+    override:
+      additional-prefix: "[nano]"
+
+  # provider2:
+  #   url: "https://example.com/another-subscription"
+  #   type: http
+  #   interval: 86400
+  #   health-check:
+  #     {
+  #       enable: true,
+  #       url: "https://www.gstatic.com/generate_204",
+  #       interval: 300,
+  #     }
+  #   override:
+  #     additional-prefix: "[provider2]"
+
+# 机器差异覆盖示例：
+#
+# 台式机热点模式：
+# bind-address: 0.0.0.0
+# allow-lan: true
+#
+# 笔记本独立模式：
+# bind-address: 127.0.0.1
+# allow-lan: false
