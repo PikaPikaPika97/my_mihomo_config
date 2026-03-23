@@ -113,9 +113,9 @@ function Test-TcpEndpoint {
         throw "代理地址格式无效，应为 host:port: $Server"
     }
 
-    $host = $Server.Substring(0, $separatorIndex)
-    if ($host.StartsWith('[') -and $host.EndsWith(']')) {
-        $host = $host.Substring(1, $host.Length - 2)
+    $serverHost = $Server.Substring(0, $separatorIndex)
+    if ($serverHost.StartsWith('[') -and $serverHost.EndsWith(']')) {
+        $serverHost = $serverHost.Substring(1, $serverHost.Length - 2)
     }
 
     $portText = $Server.Substring($separatorIndex + 1)
@@ -128,7 +128,7 @@ function Test-TcpEndpoint {
     $asyncResult = $null
 
     try {
-        $asyncResult = $client.BeginConnect($host, $port, $null, $null)
+        $asyncResult = $client.BeginConnect($serverHost, $port, $null, $null)
         if (-not $asyncResult.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
             return $false
         }
