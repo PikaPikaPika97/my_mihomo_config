@@ -13,6 +13,8 @@ $script:MihomoConfig = @{
     RetryIntervalMs   = 400
 }
 
+# 这些域名即使在系统代理开启时也要保持直连，
+# 否则 Windows 的连通性探测和部分校园网/本地资源可能被误判为离线。
 $script:ProxyBypassDomains = @(
     '*.edu.cn', 'edu.cn',
     '*.msftconnecttest.com', 'msftconnecttest.com',
@@ -68,6 +70,7 @@ function Show-MihomoNotification {
 }
 
 function Refresh-WinInetProxy {
+    # WinINet 会缓存代理设置，改完注册表后必须显式通知系统重新读取。
     rundll32.exe wininet.dll,InternetSetOptionA 0 39 0 0 | Out-Null
     rundll32.exe wininet.dll,InternetSetOptionA 0 37 0 0 | Out-Null
 }
@@ -110,6 +113,7 @@ function Test-TcpEndpoint {
         throw "代理地址格式无效，应为 host:port: $Server"
     }
 
+    # 这里故意从最后一个冒号切分，兼容 IPv6 地址 `[::1]:7890` 这一类写法。
     $serverHost = $Server.Substring(0, $separatorIndex)
     if ($serverHost.StartsWith('[') -and $serverHost.EndsWith(']')) {
         $serverHost = $serverHost.Substring(1, $serverHost.Length - 2)
@@ -187,6 +191,7 @@ function Wait-MihomoControllerReady {
 }
 
 function Ensure-MihomoRunning {
+    # 计划任务负责拉起 mihomo；若任务未运行，只启动任务本身，不直接依赖进程名猜测。
     $task = Get-ScheduledTask -TaskName $script:MihomoConfig.TaskName
     if ($task.State -ne 'Running') {
         Start-ScheduledTask -TaskName $script:MihomoConfig.TaskName
@@ -205,6 +210,7 @@ function Set-TunMode {
     $headers = Get-MihomoHeaders
     $uri = "$($script:MihomoConfig.ControllerApi)/configs"
 
+    # 控制器启动初期可能短暂不可写，这里用有限重试避免模式切换被瞬时抖动打断。
     for ($attempt = 1; $attempt -le $script:MihomoConfig.RetryCount; $attempt++) {
         try {
             $null = Invoke-RestMethod -Uri $uri `
@@ -290,6 +296,7 @@ function Invoke-RemoteSystemProxyMode {
 
     Write-MihomoStatus "✅ 已确认远端 mihomo 可达 ($Server)" -Color DarkGray
 
+    # 如果本机控制器可达，先关闭本机 TUN，避免继续抢占出口流量。
     if (Test-MihomoControllerAvailable) {
         Set-TunMode -Enable $false
         Write-MihomoStatus '✅ 已确保本机 TUN 模式关闭' -Color DarkGray
@@ -329,6 +336,7 @@ function Invoke-StopMihomo {
 
     $processes = @(Get-Process -Name $script:MihomoConfig.ProcessName -ErrorAction SilentlyContinue)
     if ($processes.Count -gt 0) {
+        # 任务有时不会立刻退出，进程兜底保证内核确实停止。
         $processes | Stop-Process -Force
         Write-MihomoStatus "✅ 已结束进程: $($script:MihomoConfig.ProcessName)"
     }
@@ -337,6 +345,7 @@ function Invoke-StopMihomo {
     }
 
     try {
+        # 关闭代理后顺手刷新 DNS，减少旧解析结果残留带来的“看似已关但还是不通”。
         Clear-DnsClientCache
         Write-MihomoStatus '✅ DNS 缓存已清理'
     }

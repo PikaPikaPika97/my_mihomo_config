@@ -44,6 +44,7 @@ def load_yaml(yaml: YAML, path: Path):
 
 
 def deep_merge(base, overlay):
+    # 递归合并嵌套映射；overlay 只覆盖指定键，其他结构保持模板原样。
     if isinstance(base, Mapping) and isinstance(overlay, Mapping):
         merged = copy.deepcopy(base)
         for key, value in overlay.items():
@@ -56,6 +57,7 @@ def deep_merge(base, overlay):
 
 
 def validate_config(config) -> None:
+    # 生成出来的配置必须至少带有一个可用的代理提供器，否则 mihomo 无法正常拉取节点。
     providers = config.get("proxy-providers")
     if not isinstance(providers, Mapping) or not providers:
         raise ValueError("最终配置缺少 proxy-providers。")
@@ -75,6 +77,7 @@ def validate_config(config) -> None:
 def write_yaml(yaml: YAML, output_path: Path, config) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = output_path.with_suffix(output_path.suffix + ".tmp")
+    # 先写临时文件，再一次性替换目标文件，避免中途失败留下半截配置。
     with temp_path.open("w", encoding="utf-8", newline="\n") as handle:
         yaml.dump(config, handle)
     temp_path.replace(output_path)
