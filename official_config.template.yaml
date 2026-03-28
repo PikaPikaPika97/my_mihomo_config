@@ -209,13 +209,13 @@ proxy-groups:
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)台|tw|taiwan"
+    filter: "(?i)台湾|台|tw|taiwan"
 
   - name: 日本
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)日本|东京|日|jp|japan"
+    filter: "(?i)日本|东京|jp|japan"
 
   - name: 美国
     type: select
@@ -227,13 +227,13 @@ proxy-groups:
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)新加坡|狮城|新|狮|sg|singapore"
+    filter: "(?i)新加坡|狮城|新加|狮|sg|singapore"
 
   - name: 其它地区
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|香港|香江|港|香|hk|hongkong|hong kong|台湾|台|tw|taiwan|日本|东京|日|jp|japan|新加坡|狮城|新|狮|sg|singapore|美国|西美|美|us|unitedstates|united states)).*"
+    filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|香港|香江|港|香|hk|hongkong|hong kong|台湾|台|tw|taiwan|日本|东京|jp|japan|新加坡|狮城|新加|狮|sg|singapore|美国|西美|美|us|unitedstates|united states)).*"
 
   - name: 全部节点
     type: select
