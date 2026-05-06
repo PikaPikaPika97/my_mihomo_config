@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "ruamel-yaml>=0.19.1",
+# ]
+# ///
+
 from __future__ import annotations
 
 import argparse
