@@ -1,0 +1,35 @@
+# 公共默认代理 bypass：会合并进各平台的系统代理设置。
+# 私有网段用 private_networks 表达意图，由 resolve_proxy_bypass.py 按平台展开。
+# 本机私有扩展写到 proxy_bypass.local.yaml（不进入 git）。
+private_networks: true
+
+domains:
+  # 通用
+  - localhost
+
+  # 校园网常用
+  - "*.edu.cn"
+  - edu.cn
+
+  # Windows 连通性探测 (NCSI)
+  - "*.msftconnecttest.com"
+  - msftconnecttest.com
+  - "*.msftncsi.com"
+  - msftncsi.com
+
+  # macOS / Apple 强制门户与连通性探测
+  - captive.apple.com
+  - "*.ls.apple.com"
+  - gs.apple.com
+
+  # Ubuntu / GNOME NetworkManager 连通性检查（多数发行版通用）
+  - connectivity-check.ubuntu.com
+  - nmcheck.gnome.org
+
+  # Chrome / Android / Google
+  - connectivitycheck.gstatic.com
+  - www.gstatic.com
+  - clients3.google.com
+
+  # Firefox
+  - detectportal.firefox.com

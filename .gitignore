@@ -6,6 +6,8 @@
 !/config.local.example.yaml
 !/my_config.yaml
 !/requirements.txt
+!/proxy_bypass.yaml
+!/proxy_bypass.local.example.yaml
 !/kill_mihomo.ps1
 !/mihomo_common.ps1
 !/start_mihomo_with_system_proxy.ps1
@@ -16,9 +18,11 @@
 !/use_local_mihomo.ps1
 !/scripts/
 !/scripts/generate_config.py
+!/scripts/resolve_proxy_bypass.py
 
 /official_config.yaml
 /config.local.yaml
+/proxy_bypass.local.yaml
 /.venv/
 /__pycache__/
 /scripts/__pycache__/

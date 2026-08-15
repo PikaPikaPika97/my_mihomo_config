@@ -11,7 +11,7 @@ proxy-providers:
     path: ./proxy_providers/nano.yaml # 关键：固定落盘位置，方便你对比
     header:
       User-Agent:
-        - "FlClash/v0.8.91 clash-verge Platform/windows"
+        - "FlClash/v0.8.94 clash-verge Platform/windows"
     health-check:
       {
         enable: true,
@@ -22,9 +22,13 @@ proxy-providers:
       additional-prefix: "[nano]"
 
   # provider2:
-  #   url: "https://example.com/another-subscription"
+  #   url: "https://example.com/your-subscription"
   #   type: http
-  #   interval: 86400
+  #   interval: 21600
+  #   path: ./proxy_providers/your-subscriptiono.yaml # 关键：固定落盘位置，方便你对比
+  #   header:
+  #     User-Agent:
+  #       - "FlClash/v0.8.94 clash-verge Platform/windows"
   #   health-check:
   #     {
   #       enable: true,
@@ -32,7 +36,7 @@ proxy-providers:
   #       interval: 300,
   #     }
   #   override:
-  #     additional-prefix: "[provider2]"
+  #     additional-prefix: "[your-subscription]"
 
 # 机器差异覆盖示例：
 #

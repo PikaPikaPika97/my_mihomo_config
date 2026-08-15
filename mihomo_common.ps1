@@ -13,20 +13,7 @@ $script:MihomoConfig = @{
     RetryIntervalMs   = 400
 }
 
-# 这些域名即使在系统代理开启时也要保持直连，
-# 否则 Windows 的连通性探测和部分校园网/本地资源可能被误判为离线。
-$script:ProxyBypassDomains = @(
-    '*.edu.cn', 'edu.cn',
-    '*.msftconnecttest.com', 'msftconnecttest.com',
-    '*.msftncsi.com', 'msftncsi.com'
-)
-
-$script:DefaultProxyBypass = @(
-    'localhost', '127.*', '10.*',
-    '172.16.*', '172.17.*', '172.18.*', '172.19.*', '172.20.*', '172.21.*', '172.22.*', '172.23.*',
-    '172.24.*', '172.25.*', '172.26.*', '172.27.*', '172.28.*', '172.29.*', '172.30.*', '172.31.*',
-    '192.168.*', '<local>'
-)
+$script:ResolveProxyBypassScript = "$PSScriptRoot\scripts\resolve_proxy_bypass.py"
 
 function Get-MihomoHeaders {
     $headers = @{}
@@ -76,7 +63,16 @@ function Refresh-WinInetProxy {
 }
 
 function Get-SystemProxyOverride {
-    return ($script:DefaultProxyBypass + $script:ProxyBypassDomains) -join ';'
+    # 懒解析并缓存：仅在需要写入 ProxyOverride 时才调用 uv，关闭代理不依赖 uv。
+    if ($null -eq $script:ProxyOverride) {
+        try {
+            $script:ProxyOverride = (& uv run --script $script:ResolveProxyBypassScript --platform windows).Trim()
+        }
+        catch {
+            throw "无法解析代理 bypass 列表（请确认已安装 uv）: $($_.Exception.Message)"
+        }
+    }
+    return $script:ProxyOverride
 }
 
 function Set-SystemProxyDisabled {

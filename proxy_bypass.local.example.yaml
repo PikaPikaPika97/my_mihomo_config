@@ -1,0 +1,7 @@
+# 本机私有扩展示例：复制为 proxy_bypass.local.yaml 后按需修改（该文件不进入 git）。
+# 例如公司内网域名：
+# domains:
+#   - "*.corp.xxx"
+#   - "gitlab.corp.xxx"
+#   - "jira.corp.xxx"
+domains: []
