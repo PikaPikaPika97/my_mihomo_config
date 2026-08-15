@@ -6,7 +6,6 @@
 !/official_config.template.yaml
 !/config.local.example.yaml
 !/my_config.yaml
-!/requirements.txt
 !/proxy_bypass.yaml
 !/proxy_bypass.local.example.yaml
 !/mihomo.ps1
