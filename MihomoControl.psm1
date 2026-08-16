@@ -27,46 +27,18 @@ function Get-MihomoHeaders {
     return $headers
 }
 
-function Invoke-MihomoControllerVersionRequest {
-    return Invoke-RestMethod `
-        -Uri "$($script:MihomoConfig.ControllerApi)/version" `
-        -Headers (Get-MihomoHeaders) `
-        -TimeoutSec $script:MihomoConfig.RequestTimeoutSec `
-        -Method GET
-}
-
-function Invoke-MihomoControllerConfigRequest {
-    return Invoke-RestMethod `
-        -Uri "$($script:MihomoConfig.ControllerApi)/configs" `
-        -Headers (Get-MihomoHeaders) `
-        -TimeoutSec $script:MihomoConfig.RequestTimeoutSec `
-        -Method GET
-}
-
 function Test-MihomoControllerAvailable {
     try {
-        $null = Invoke-MihomoControllerVersionRequest
+        $null = Invoke-RestMethod `
+            -Uri "$($script:MihomoConfig.ControllerApi)/version" `
+            -Headers (Get-MihomoHeaders) `
+            -TimeoutSec $script:MihomoConfig.RequestTimeoutSec `
+            -Method GET
         return $true
     }
     catch {
         return $false
     }
-}
-
-function Wait-MihomoControllerReady {
-    param(
-        [int]$TimeoutSec = $script:MihomoConfig.StartupTimeoutSec
-    )
-
-    $deadline = (Get-Date).AddSeconds($TimeoutSec)
-    while ((Get-Date) -lt $deadline) {
-        if (Test-MihomoControllerAvailable) {
-            return
-        }
-        Start-Sleep -Milliseconds $script:MihomoConfig.RetryIntervalMs
-    }
-
-    throw "mihomo 控制器未在 ${TimeoutSec} 秒内就绪: $($script:MihomoConfig.ControllerApi)"
 }
 
 function Get-MihomoScheduledTask {
@@ -94,11 +66,23 @@ function Ensure-MihomoRunning {
         Start-ScheduledTask -TaskName $script:MihomoConfig.TaskName
     }
 
-    Wait-MihomoControllerReady
+    $deadline = (Get-Date).AddSeconds($script:MihomoConfig.StartupTimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-MihomoControllerAvailable) {
+            return
+        }
+        Start-Sleep -Milliseconds $script:MihomoConfig.RetryIntervalMs
+    }
+
+    throw "mihomo 控制器未在 $($script:MihomoConfig.StartupTimeoutSec) 秒内就绪: $($script:MihomoConfig.ControllerApi)"
 }
 
 function Get-TunModeEnabled {
-    $config = Invoke-MihomoControllerConfigRequest
+    $config = Invoke-RestMethod `
+        -Uri "$($script:MihomoConfig.ControllerApi)/configs" `
+        -Headers (Get-MihomoHeaders) `
+        -TimeoutSec $script:MihomoConfig.RequestTimeoutSec `
+        -Method GET
     $tunProperty = $config.PSObject.Properties['tun']
     if ($null -eq $tunProperty -or $null -eq $config.tun) {
         throw 'mihomo 控制器返回中缺少 tun 配置。'
@@ -314,26 +298,6 @@ function Stop-LocalMihomoCore {
         $failures.Add("结束残留进程失败: $($_.Exception.Message)")
     }
 
-    try {
-        $task = Get-MihomoScheduledTask
-        if ($null -ne $task -and $task.State -eq 'Running') {
-            $failures.Add("计划任务仍在运行: $($script:MihomoConfig.TaskName)")
-        }
-    }
-    catch {
-        $failures.Add("无法验证计划任务状态: $($_.Exception.Message)")
-    }
-
-    try {
-        $processes = @(Get-Process -Name $script:MihomoConfig.ProcessName -ErrorAction SilentlyContinue)
-        if ($processes.Count -gt 0) {
-            $failures.Add("mihomo 进程仍然存在: $($script:MihomoConfig.ProcessName)")
-        }
-    }
-    catch {
-        $failures.Add("无法验证 mihomo 进程状态: $($_.Exception.Message)")
-    }
-
     if ($failures.Count -gt 0) {
         throw ($failures -join '；')
     }
@@ -404,31 +368,18 @@ function Assert-MihomoTargetState {
 function Invoke-MihomoTransitionStep {
     param(
         [Parameter(Mandatory)]
-        [string]$TargetState,
-        [Parameter(Mandatory)]
         [string]$Step,
         [Parameter(Mandatory)]
         [string]$IntermediateState,
-        [Parameter(Mandatory)]
-        [AllowEmptyCollection()]
-        [System.Collections.Generic.List[string]]$CompletedSteps,
         [Parameter(Mandatory)]
         [scriptblock]$Action
     )
 
     try {
         & $Action | Out-Null
-        $CompletedSteps.Add($Step)
     }
     catch {
-        $completedText = if ($CompletedSteps.Count -eq 0) {
-            '无'
-        }
-        else {
-            $CompletedSteps -join '、'
-        }
-
-        throw "切换到 $TargetState 失败。已完成步骤: $completedText。失败步骤: $Step。当前可能状态: $IntermediateState。请重新执行同一显式目标状态以继续收敛。原始错误: $($_.Exception.Message)"
+        throw "失败步骤: $Step。当前可能状态: $IntermediateState。原始错误: $($_.Exception.Message)"
     }
 }
 
@@ -437,100 +388,90 @@ function Set-MihomoTargetStateCore {
         [Parameter(Mandatory)]
         [ValidateSet('LocalSystemProxy', 'LocalTun', 'Direct', 'RemoteProxy', 'Stopped')]
         [string]$State,
-        [string]$RemoteServer,
-        [Parameter(Mandatory)]
-        [bool]$RemoteServerSpecified
+        [string]$RemoteServer
     )
 
-    if ($State -eq 'RemoteProxy') {
-        if (-not $RemoteServerSpecified -or [string]::IsNullOrWhiteSpace($RemoteServer)) {
-            throw 'RemoteProxy 必须显式提供 -RemoteServer，且不会修改当前状态。'
-        }
-        $RemoteServer = $RemoteServer.Trim()
-        $null = ConvertFrom-ProxyEndpoint -Server $RemoteServer
-    }
-    elseif ($RemoteServerSpecified) {
-        throw "只有 RemoteProxy 可以使用 -RemoteServer，且不会修改当前状态。"
-    }
-
-    $completedSteps = [System.Collections.Generic.List[string]]::new()
-
-    switch ($State) {
-        'LocalSystemProxy' {
-            $proxyOverride = Get-SystemProxyOverride
-            Invoke-MihomoTransitionStep -TargetState $State -Step '启动并确认本机控制器' -IntermediateState '本机内核可能已启动，原代理状态可能仍在' -CompletedSteps $completedSteps -Action {
-                Ensure-MihomoRunning
+    try {
+        switch ($State) {
+            'LocalSystemProxy' {
+                $proxyOverride = Get-SystemProxyOverride
+                Invoke-MihomoTransitionStep -Step '启动并确认本机控制器' -IntermediateState '本机内核可能已启动，原代理状态可能仍在' -Action {
+                    Ensure-MihomoRunning
+                }
+                Invoke-MihomoTransitionStep -Step '关闭本机 TUN' -IntermediateState '本机内核运行，原系统代理状态可能仍在' -Action {
+                    Set-TunMode -Enable $false
+                }
+                Invoke-MihomoTransitionStep -Step '启用本机系统代理' -IntermediateState 'TUN 已关闭，Windows 代理可能处于部分写入或直连状态' -Action {
+                    Enable-SystemProxyServer -Server $script:LocalProxyServer -ProxyOverride $proxyOverride
+                }
             }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '关闭本机 TUN' -IntermediateState '本机内核运行，原系统代理状态可能仍在' -CompletedSteps $completedSteps -Action {
-                Set-TunMode -Enable $false
+            'LocalTun' {
+                Invoke-MihomoTransitionStep -Step '启动并确认本机控制器' -IntermediateState '本机内核可能已启动，原代理状态可能仍在' -Action {
+                    Ensure-MihomoRunning
+                }
+                Invoke-MihomoTransitionStep -Step '关闭 Windows 系统代理' -IntermediateState 'Windows 代理可能处于部分关闭状态' -Action {
+                    Set-SystemProxyDisabled
+                }
+                Invoke-MihomoTransitionStep -Step '开启本机 TUN' -IntermediateState '接近直连状态，本机内核运行但 TUN 可能仍关闭' -Action {
+                    Set-TunMode -Enable $true
+                }
             }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '启用本机系统代理' -IntermediateState 'TUN 已关闭，Windows 代理可能处于部分写入或直连状态' -CompletedSteps $completedSteps -Action {
-                Enable-SystemProxyServer -Server $script:LocalProxyServer -ProxyOverride $proxyOverride
-            }
-        }
-        'LocalTun' {
-            Invoke-MihomoTransitionStep -TargetState $State -Step '启动并确认本机控制器' -IntermediateState '本机内核可能已启动，原代理状态可能仍在' -CompletedSteps $completedSteps -Action {
-                Ensure-MihomoRunning
-            }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '关闭 Windows 系统代理' -IntermediateState 'Windows 代理可能处于部分关闭状态' -CompletedSteps $completedSteps -Action {
-                Set-SystemProxyDisabled
-            }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '开启本机 TUN' -IntermediateState '接近直连状态，本机内核运行但 TUN 可能仍关闭' -CompletedSteps $completedSteps -Action {
-                Set-TunMode -Enable $true
-            }
-        }
-        'Direct' {
-            Invoke-MihomoTransitionStep -TargetState $State -Step '关闭 Windows 系统代理' -IntermediateState 'Windows 代理可能处于部分关闭状态' -CompletedSteps $completedSteps -Action {
-                Set-SystemProxyDisabled
-            }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '启动并确认本机控制器' -IntermediateState 'Windows 代理已关闭，本机内核可能尚未就绪' -CompletedSteps $completedSteps -Action {
-                Ensure-MihomoRunning
-            }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '关闭本机 TUN' -IntermediateState 'Windows 代理已关闭，本机 TUN 可能仍开启' -CompletedSteps $completedSteps -Action {
-                Set-TunMode -Enable $false
-            }
-        }
-        'RemoteProxy' {
-            if (-not (Test-TcpEndpoint -Server $RemoteServer)) {
-                throw "远端代理不可达: $RemoteServer。未修改当前状态。"
-            }
-            $proxyOverride = Get-SystemProxyOverride
-            $controllerAvailable = Test-MihomoControllerAvailable
-            $localCoreRunning = if ($controllerAvailable) {
-                $true
-            }
-            else {
-                Test-LocalMihomoRunning
-            }
-
-            if ($localCoreRunning -and -not $controllerAvailable) {
-                throw '本机 mihomo 似乎正在运行，但控制器不可达，无法确认 TUN 已关闭。未修改当前状态。'
-            }
-
-            if ($controllerAvailable) {
-                Invoke-MihomoTransitionStep -TargetState $State -Step '关闭本机 TUN' -IntermediateState '远端代理尚未启用，本机 TUN 可能仍开启' -CompletedSteps $completedSteps -Action {
+            'Direct' {
+                Invoke-MihomoTransitionStep -Step '关闭 Windows 系统代理' -IntermediateState 'Windows 代理可能处于部分关闭状态' -Action {
+                    Set-SystemProxyDisabled
+                }
+                Invoke-MihomoTransitionStep -Step '启动并确认本机控制器' -IntermediateState 'Windows 代理已关闭，本机内核可能尚未就绪' -Action {
+                    Ensure-MihomoRunning
+                }
+                Invoke-MihomoTransitionStep -Step '关闭本机 TUN' -IntermediateState 'Windows 代理已关闭，本机 TUN 可能仍开启' -Action {
                     Set-TunMode -Enable $false
                 }
             }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '启用远端系统代理' -IntermediateState '本机 TUN 已关闭，Windows 代理可能处于部分写入状态' -CompletedSteps $completedSteps -Action {
-                Enable-SystemProxyServer -Server $RemoteServer -ProxyOverride $proxyOverride
+            'RemoteProxy' {
+                if (-not (Test-TcpEndpoint -Server $RemoteServer)) {
+                    throw "远端代理不可达: $RemoteServer。未修改当前状态。"
+                }
+                $proxyOverride = Get-SystemProxyOverride
+                $controllerAvailable = Test-MihomoControllerAvailable
+                $localCoreRunning = if ($controllerAvailable) {
+                    $true
+                }
+                else {
+                    Test-LocalMihomoRunning
+                }
+
+                if ($localCoreRunning -and -not $controllerAvailable) {
+                    throw '本机 mihomo 似乎正在运行，但控制器不可达，无法确认 TUN 已关闭。未修改当前状态。'
+                }
+
+                if ($controllerAvailable) {
+                    Invoke-MihomoTransitionStep -Step '关闭本机 TUN' -IntermediateState '远端代理尚未启用，本机 TUN 可能仍开启' -Action {
+                        Set-TunMode -Enable $false
+                    }
+                }
+                Invoke-MihomoTransitionStep -Step '启用远端系统代理' -IntermediateState '本机 TUN 已关闭，Windows 代理可能处于部分写入状态' -Action {
+                    Enable-SystemProxyServer -Server $RemoteServer -ProxyOverride $proxyOverride
+                }
+                Invoke-MihomoTransitionStep -Step '停止本机 mihomo 内核' -IntermediateState '远端系统代理已启用，但本机内核可能仍在运行' -Action {
+                    Stop-LocalMihomoCore
+                }
             }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '停止本机 mihomo 内核' -IntermediateState '远端系统代理已启用，但本机内核可能仍在运行' -CompletedSteps $completedSteps -Action {
-                Stop-LocalMihomoCore
+            'Stopped' {
+                Invoke-MihomoTransitionStep -Step '关闭 Windows 系统代理' -IntermediateState 'Windows 代理可能处于部分关闭状态；本机内核仍在运行' -Action {
+                    Set-SystemProxyDisabled
+                }
+                Invoke-MihomoTransitionStep -Step '停止本机 mihomo 内核' -IntermediateState 'Windows 代理已关闭，但任务或进程可能仍在运行' -Action {
+                    Stop-LocalMihomoCore
+                }
             }
         }
-        'Stopped' {
-            Invoke-MihomoTransitionStep -TargetState $State -Step '关闭 Windows 系统代理' -IntermediateState 'Windows 代理可能处于部分关闭状态；本机内核仍在运行' -CompletedSteps $completedSteps -Action {
-                Set-SystemProxyDisabled
-            }
-            Invoke-MihomoTransitionStep -TargetState $State -Step '停止本机 mihomo 内核' -IntermediateState 'Windows 代理已关闭，但任务或进程可能仍在运行' -CompletedSteps $completedSteps -Action {
-                Stop-LocalMihomoCore
-            }
+
+        Invoke-MihomoTransitionStep -Step '验证目标代理状态' -IntermediateState '写入步骤已完成，但最终不变量未满足' -Action {
+            Assert-MihomoTargetState -State $State -RemoteServer $RemoteServer
         }
     }
-
-    Invoke-MihomoTransitionStep -TargetState $State -Step '验证目标代理状态' -IntermediateState '写入步骤已完成，但最终不变量未满足' -CompletedSteps $completedSteps -Action {
-        Assert-MihomoTargetState -State $State -RemoteServer $RemoteServer
+    catch {
+        throw "切换到 $State 失败。$($_.Exception.Message)"
     }
 
     if ($State -eq 'Stopped') {
@@ -586,12 +527,19 @@ function Set-MihomoTargetState {
         [string]$RemoteServer
     )
 
-    $remoteServerSpecified = $PSBoundParameters.ContainsKey('RemoteServer')
+    if ($State -eq 'RemoteProxy') {
+        if (-not $PSBoundParameters.ContainsKey('RemoteServer') -or [string]::IsNullOrWhiteSpace($RemoteServer)) {
+            throw 'RemoteProxy 必须显式提供 -RemoteServer，且不会修改当前状态。'
+        }
+        $RemoteServer = $RemoteServer.Trim()
+        $null = ConvertFrom-ProxyEndpoint -Server $RemoteServer
+    }
+    elseif ($PSBoundParameters.ContainsKey('RemoteServer')) {
+        throw '只有 RemoteProxy 可以使用 -RemoteServer，且不会修改当前状态。'
+    }
+
     return Invoke-WithMihomoControlLock -Action {
-        Set-MihomoTargetStateCore `
-            -State $State `
-            -RemoteServer $RemoteServer `
-            -RemoteServerSpecified $remoteServerSpecified
+        Set-MihomoTargetStateCore -State $State -RemoteServer $RemoteServer
     }
 }
 
@@ -624,7 +572,7 @@ function Switch-MihomoLocalMode {
             throw '当前不是完整的本机系统代理状态或本机 TUN 状态。ToggleLocal 不会猜测目标，请显式指定 -State。'
         }
 
-        Set-MihomoTargetStateCore -State $targetState -RemoteServerSpecified $false
+        Set-MihomoTargetStateCore -State $targetState
     }
 }
 
