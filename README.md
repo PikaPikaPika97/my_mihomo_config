@@ -231,8 +231,8 @@ proxy_off
 修改配置时，保持以下值一致：
 
 - `official_config.yaml` 中的 `external-controller`
-- `MihomoControl.psm1` 中的控制器地址、任务名和端口
-- 启用控制器 secret 时，`MihomoControl.psm1` 中的 `ApiSecret`
+- `scripts/windows/MihomoControl.psm1` 中的控制器地址、任务名和端口
+- 启用控制器 secret 时，`scripts/windows/MihomoControl.psm1` 中的 `ApiSecret`
 
 ## 设计和架构
 
@@ -243,7 +243,7 @@ proxy_off
 - `scripts/generate_config.py` 合并并验证 mihomo 配置
 - `scripts/resolve_proxy_bypass.py` 生成各平台使用的 bypass 列表
 - `mihomo.ps1` 是 Windows 命令入口
-- `MihomoControl.psm1` 管理 Windows 目标代理状态
+- `scripts/windows/MihomoControl.psm1` 管理 Windows 目标代理状态
 - `CONTEXT.md` 定义代理控制领域词汇
 
 ### Windows 模块分工
@@ -257,7 +257,7 @@ Windows 控制代码分为一个命令入口和一个状态模块。
 - 设置退出码
 - 输出结果和可选通知
 
-`MihomoControl.psm1` 是状态模块，只导出 2 个函数：
+`scripts/windows/MihomoControl.psm1` 是状态模块，只导出 2 个函数：
 
 - `Set-MihomoTargetState` 收敛到显式目标状态
 - `Switch-MihomoLocalMode` 在 2 个本机代理状态之间切换

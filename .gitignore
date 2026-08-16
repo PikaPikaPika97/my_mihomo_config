@@ -9,10 +9,10 @@
 !/proxy_bypass.yaml
 !/proxy_bypass.local.example.yaml
 !/mihomo.ps1
-!/MihomoControl.psm1
 !/scripts/
 !/scripts/generate_config.py
 !/scripts/resolve_proxy_bypass.py
+!/scripts/windows/MihomoControl.psm1
 
 /official_config.yaml
 /config.local.yaml

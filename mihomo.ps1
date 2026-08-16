@@ -59,7 +59,7 @@ function Get-MihomoStateMessage {
 }
 
 try {
-    Import-Module "$PSScriptRoot\MihomoControl.psm1" -Force
+    Import-Module "$PSScriptRoot\scripts\windows\MihomoControl.psm1" -Force
 
     if ($ToggleLocal) {
         $reachedState = Switch-MihomoLocalMode

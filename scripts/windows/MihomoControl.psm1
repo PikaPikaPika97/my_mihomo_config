@@ -16,7 +16,7 @@ $script:MihomoConfig = @{
 }
 
 $script:LocalProxyServer = "127.0.0.1:$($script:MihomoConfig.ProxyPort)"
-$script:ResolveProxyBypassScript = "$PSScriptRoot\scripts\resolve_proxy_bypass.py"
+$script:ResolveProxyBypassScript = "$PSScriptRoot\..\resolve_proxy_bypass.py"
 $script:ProxyOverride = $null
 
 function Get-MihomoHeaders {
