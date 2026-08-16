@@ -1,50 +1,64 @@
-# mihomo 裸核配置
+# mihomo 配置仓库
 
-本仓库保存 mihomo 配置模板、控制脚本和计划任务定义。你需要在本机提供私有配置和 mihomo 可执行文件。
+本仓库保存 mihomo 配置模板、控制脚本和计划任务定义。配置步骤在所有平台相同，使用方式按平台分节说明。你需要自备私有配置和 mihomo 可执行文件。
 
-## 开始使用
+## 准备工具
 
-### 准备工具
+所有平台都需要：
 
-安装以下工具：
-
-- [uv](https://docs.astral.sh/uv/)，用于运行 Python 脚本和安装脚本声明的依赖
-- PowerShell 7，用于运行 Windows 代理控制脚本
+- [uv](https://docs.astral.sh/uv/)，用于运行 Python 脚本
 - mihomo，用于运行代理内核
 
-本仓库不使用 `requirements.txt`。每个 Python 脚本都在文件头声明 Python 版本和依赖。
+Windows 还需要：
 
-### 创建本地配置
+- PowerShell 7，用于运行代理控制脚本
 
-1. 复制本地配置示例。
+macOS 还需要：
 
-   ```powershell
-   Copy-Item .\config.local.example.yaml .\config.local.yaml
-   ```
+- [Homebrew](https://brew.sh)，用于安装和运行 mihomo
 
-2. 在 `config.local.yaml` 中填写 `proxy-providers`。
+每个 Python 脚本在文件头声明 Python 版本和依赖。本仓库不使用 `requirements.txt`。
 
-3. 按机器用途设置监听地址。
+## 通用配置
 
-   独立使用：
+以下步骤在所有平台上相同。
 
-   ```yaml
-   bind-address: 127.0.0.1
-   allow-lan: false
-   ```
+### 复制本地配置
 
-   提供局域网代理：
+把 `config.local.example.yaml` 复制为 `config.local.yaml`：
 
-   ```yaml
-   bind-address: 0.0.0.0
-   allow-lan: true
-   ```
+```powershell
+Copy-Item .\config.local.example.yaml .\config.local.yaml
+```
 
-4. 保留默认控制器地址，除非你也会同步修改控制脚本。
+在 `config.local.yaml` 中填写：
 
-   ```yaml
-   external-controller: 127.0.0.1:9090
-   ```
+- `proxy-providers`，你的订阅地址
+- 监听地址，按机器用途选择
+
+独立使用：
+
+```yaml
+bind-address: 127.0.0.1
+allow-lan: false
+```
+
+为局域网提供代理：
+
+```yaml
+bind-address: 0.0.0.0
+allow-lan: true
+```
+
+保留默认控制器地址 `127.0.0.1:9090`，除非你同步修改控制脚本。
+
+把 `proxy_bypass.local.example.yaml` 复制为 `proxy_bypass.local.yaml`：
+
+```powershell
+Copy-Item .\proxy_bypass.local.example.yaml .\proxy_bypass.local.yaml
+```
+
+在 `proxy_bypass.local.yaml` 中填入本机私有的 bypass 项，例如公司内网域名。
 
 ### 生成运行配置
 
@@ -54,13 +68,25 @@
 uv run --script .\scripts\generate_config.py
 ```
 
-脚本执行以下操作：
+脚本读取 `official_config.template.yaml` 和 `config.local.yaml`，合并后写入 `official_config.yaml`。它验证 `proxy-providers`。失败时保留已有的 `official_config.yaml`。
 
-- 读取 `official_config.template.yaml`
-- 合并 `config.local.yaml`
-- 验证 `proxy-providers`
-- 写入 `official_config.yaml`
-- 失败时保留已有的 `official_config.yaml`
+### 解析代理 bypass
+
+bypass 列表是不走代理、直接连接的域名和网段。脚本合并 `proxy_bypass.yaml` 和可选的 `proxy_bypass.local.yaml`，按平台输出格式。
+
+Windows：
+
+```powershell
+uv run --script .\scripts\resolve_proxy_bypass.py --platform windows
+```
+
+macOS：
+
+```bash
+uv run --script scripts/resolve_proxy_bypass.py --platform macos
+```
+
+## Windows
 
 ### 启动 mihomo
 
@@ -72,11 +98,11 @@ uv run --script .\scripts\generate_config.py
 
 日常使用建议导入 `mihomo.xml`，或手动创建计划任务。计划任务需要以下设置：
 
-- 任务名为 `mihomo`
+- 任务名 `mihomo`
 - 用户登录时触发
 - 使用最高权限运行
-- 程序为 `mihomo-windows-amd64.exe`
-- 参数为 `-d .\ -f official_config.yaml`
+- 程序 `mihomo-windows-amd64.exe`
+- 参数 `-d .\ -f official_config.yaml`
 - 工作目录为仓库根目录
 
 仓库当前使用以下默认路径：
@@ -85,19 +111,27 @@ uv run --script .\scripts\generate_config.py
 C:\Users\YYH\OneDrive\Software\mihomo
 ```
 
-迁移仓库后，需要同步更新 `mihomo.xml` 和控制脚本中的路径。
+迁移仓库后，同步更新 `mihomo.xml` 和控制脚本中的路径。
 
-### 切换 Windows 代理状态
+### 切换代理状态
 
-所有 Windows 代理操作都使用 `mihomo.ps1`。
+所有 Windows 代理操作都使用 `mihomo.ps1`。完整命令：
 
-| 目标状态 | 命令 | 结果 |
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\mihomo.ps1 -State LocalSystemProxy
+```
+
+5 种目标状态：
+
+| 目标状态 | 参数 | 结果 |
 | --- | --- | --- |
-| 本机系统代理 | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\mihomo.ps1 -State LocalSystemProxy` | 本机内核运行，TUN 关闭，系统代理指向本机端口 |
-| 本机 TUN | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\mihomo.ps1 -State LocalTun` | 本机内核运行，系统代理关闭，TUN 开启 |
-| 直连 | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\mihomo.ps1 -State Direct` | 本机内核运行，系统代理和 TUN 都关闭 |
-| 远端代理 | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\mihomo.ps1 -State RemoteProxy -RemoteServer "192.168.137.1:7890"` | 系统代理指向远端地址，本机内核停止 |
-| 停止 | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\mihomo.ps1 -State Stopped` | 系统代理关闭，本机任务和进程停止 |
+| 本机系统代理 | `-State LocalSystemProxy` | 本机内核运行，TUN 关闭，系统代理指向本机端口 |
+| 本机 TUN | `-State LocalTun` | 本机内核运行，系统代理关闭，TUN 开启 |
+| 直连 | `-State Direct` | 本机内核运行，系统代理和 TUN 都关闭 |
+| 远端代理 | `-State RemoteProxy -RemoteServer "192.168.137.1:7890"` | 系统代理指向远端地址，本机内核停止 |
+| 停止 | `-State Stopped` | 系统代理关闭，本机任务和进程停止 |
+
+TUN 是 mihomo 的虚拟网卡模式，接管系统所有流量。
 
 在 2 个本机代理状态之间切换：
 
@@ -105,55 +139,11 @@ C:\Users\YYH\OneDrive\Software\mihomo
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\mihomo.ps1 -ToggleLocal
 ```
 
-`ToggleLocal` 只接受完整的本机系统代理状态或本机 TUN 状态。它在直连、远端、停止或混合状态下会拒绝操作。此时请显式指定 `-State`。
+`ToggleLocal` 只接受完整的本机系统代理状态或本机 TUN 状态。它在直连、远端、停止或混合状态下拒绝操作。此时请显式指定 `-State`。
 
 快捷方式使用 `-ShowNotification` 显示结果。手动运行默认不弹窗。
 
-### 使用 macOS 脚本
-
-生成、验证并安装配置：
-
-```bash
-bash scripts/macos/install_config.sh
-```
-
-不要用 `sudo` 运行安装配置脚本。它需要在当前用户的 Homebrew 环境中生成配置并重启用户级服务。
-
-开启或关闭 macOS 系统代理：
-
-```bash
-sudo bash scripts/macos/proxy_on.sh
-sudo bash scripts/macos/proxy_off.sh
-```
-
-这两个脚本使用 `networksetup` 修改系统网络服务，因此需要管理员权限。终端代理只修改当前 zsh 会话的环境变量，不需要 `sudo`。
-
-在当前 zsh 会话中加载终端代理命令：
-
-```zsh
-source scripts/macos/terminal_proxy.sh
-proxy_on
-proxy_status
-proxy_off
-```
-
-### 解析代理 bypass
-
-Windows 格式：
-
-```powershell
-uv run --script .\scripts\resolve_proxy_bypass.py --platform windows
-```
-
-macOS 格式：
-
-```bash
-uv run --script scripts/resolve_proxy_bypass.py --platform macos
-```
-
-脚本会合并 `proxy_bypass.yaml` 和可选的 `proxy_bypass.local.yaml`。
-
-## 手动验证 Windows 状态
+### 验证 Windows 状态
 
 真实状态验证会修改当前机器的代理、TUN 和 mihomo 进程。请按顺序执行。
 
@@ -178,6 +168,48 @@ Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Setti
 (Invoke-RestMethod http://127.0.0.1:9090/configs).tun
 ```
 
+## macOS
+
+### 安装配置
+
+生成、验证并安装配置：
+
+```bash
+bash scripts/macos/install_config.sh
+```
+
+不要用 `sudo` 运行安装配置脚本。它需要在当前用户的 Homebrew 环境中生成配置并重启用户级服务。
+
+### 开启或关闭系统代理
+
+```bash
+sudo bash scripts/macos/proxy_on.sh
+sudo bash scripts/macos/proxy_off.sh
+```
+
+这两个脚本使用 `networksetup` 修改系统网络服务，因此需要管理员权限。`proxy_off` 只关闭代理状态，不清空 bypass，避免破坏公司原有的 bypass 配置。
+
+### 使用终端代理
+
+终端代理只修改当前 zsh 会话的环境变量，不需要 `sudo`：
+
+```zsh
+source scripts/macos/terminal_proxy.sh
+proxy_on
+proxy_status
+proxy_off
+```
+
+建议把 `source` 写入 `~/.zshrc`。默认端口为 7890，可用 `MIHOMO_PROXY_PORT` 覆盖。
+
+## 排查问题
+
+- TUN 切换失败时，使用管理员权限运行命令
+- 控制器不可达时，检查 `127.0.0.1:9090`
+- 远端代理失败时，检查 `RemoteServer` 地址和端口
+- 计划任务查询显示不存在时，先用管理员 PowerShell 重试
+- 修改端口后，检查配置文件和控制模块中的端口是否一致
+
 ## 配置参考
 
 ### 不提交本机数据
@@ -196,7 +228,7 @@ Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Setti
 
 控制脚本通过 `PATCH /configs` 切换 TUN。默认控制器地址为 `127.0.0.1:9090`。
 
-修改配置时，需要保持以下值一致：
+修改配置时，保持以下值一致：
 
 - `official_config.yaml` 中的 `external-controller`
 - `MihomoControl.psm1` 中的控制器地址、任务名和端口
@@ -218,19 +250,19 @@ Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Setti
 
 Windows 控制代码分为一个命令入口和一个状态模块。
 
-`mihomo.ps1` 是命令 adapter，负责：
+`mihomo.ps1` 是命令入口，负责：
 
 - 接收目标状态或 `ToggleLocal`
-- 导入状态 module
+- 导入状态模块
 - 设置退出码
 - 输出结果和可选通知
 
-`MihomoControl.psm1` 是状态 module，只导出以下 2 个函数：
+`MihomoControl.psm1` 是状态模块，只导出 2 个函数：
 
 - `Set-MihomoTargetState` 收敛到显式目标状态
 - `Switch-MihomoLocalMode` 在 2 个本机代理状态之间切换
 
-module 内部处理注册表、WinINet、控制器、计划任务、进程、DNS、bypass 和 TCP 探测。调用者不能直接组合这些操作。
+模块内部处理注册表、WinINet、控制器、计划任务、进程、DNS、bypass 和 TCP 探测。调用者不能直接组合这些操作。
 
 ### 状态转换规则
 
@@ -241,19 +273,11 @@ module 内部处理注册表、WinINet、控制器、计划任务、进程、DNS
 - 同一时间只允许一个转换进程
 - 转换失败后不自动回滚
 - 错误会列出失败步骤和可能的中间状态，并附上原始错误
-- 部分失败后，应重新执行同一个显式 `-State`
-- 部分失败后，不应重试 `ToggleLocal`
+- 部分失败后，重新执行同一个显式 `-State`
+- 部分失败后，不要重试 `ToggleLocal`
 
 ### Python 脚本依赖
 
 每个 Python 脚本使用 PEP 723 元数据声明 Python 版本和依赖。`uv run --script` 会创建隔离环境并安装所需依赖。
 
-仓库不使用 `requirements.txt`、`pyproject.toml` 或 `uv.lock` 管理这些单文件脚本。
-
-## 排查问题
-
-- TUN 切换失败时，使用管理员权限运行命令
-- 控制器不可达时，检查 `127.0.0.1:9090`
-- 远端代理失败时，检查 `RemoteServer` 地址和端口
-- 计划任务查询显示不存在时，先用管理员 PowerShell 重试
-- 修改端口后，检查配置文件和控制 module 中的端口是否一致
+本仓库不使用 `requirements.txt`、`pyproject.toml` 或 `uv.lock` 管理这些单文件脚本。
