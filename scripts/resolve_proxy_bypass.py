@@ -19,6 +19,7 @@ DEFAULT_BYPASS_FILE = REPO_ROOT / "proxy_bypass.yaml"
 LOCAL_BYPASS_FILE = REPO_ROOT / "proxy_bypass.local.yaml"
 
 # 私有网段按平台展开；Windows 以 `<local>` 结尾（与旧脚本行为一致），macOS 不使用 `<local>`。
+# Linux 的输出用于 no_proxy，因此使用 CIDR 表示私有网段。
 PRIVATE_NETWORKS = {
     "windows": [
         "localhost",
@@ -35,9 +36,17 @@ PRIVATE_NETWORKS = {
         "172.16.*",
         "192.168.*",
     ],
+    "linux": [
+        "localhost",
+        "127.0.0.1",
+        "::1",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+    ],
 }
 
-DEFAULT_FORMAT = {"windows": "windows", "macos": "lines"}
+DEFAULT_FORMAT = {"windows": "windows", "macos": "lines", "linux": "lines"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,7 +57,7 @@ def parse_args() -> argparse.Namespace:
         "--platform",
         required=True,
         choices=sorted(DEFAULT_FORMAT),
-        help="Target platform (windows or macos).",
+        help="Target platform (windows, macos, or linux).",
     )
     parser.add_argument(
         "--format",
@@ -91,6 +100,9 @@ def resolve(platform: str) -> list[str]:
     def append(items) -> None:
         for item in items:
             item = str(item).strip()
+            # no_proxy 使用前导点匹配子域名；`*.example.com` 不是通用语法。
+            if platform == "linux" and item.startswith("*."):
+                item = item[1:]
             if item and item not in seen:
                 seen.add(item)
                 result.append(item)

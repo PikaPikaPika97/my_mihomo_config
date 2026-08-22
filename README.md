@@ -13,7 +13,7 @@ Windows 还需要：
 
 - PowerShell 7，用于运行代理控制脚本
 
-macOS 还需要：
+macOS 和 Linux 还需要：
 
 - [Homebrew](https://brew.sh)，用于安装和运行 mihomo
 
@@ -84,6 +84,12 @@ macOS：
 
 ```bash
 uv run --script scripts/resolve_proxy_bypass.py --platform macos
+```
+
+Linux：
+
+```bash
+uv run --script scripts/resolve_proxy_bypass.py --platform linux
 ```
 
 ## Windows
@@ -191,7 +197,7 @@ sudo bash scripts/macos/proxy_off.sh
 
 ### 使用终端代理
 
-终端代理只修改当前 zsh 会话的环境变量，不需要 `sudo`：
+终端代理只修改当前 Bash 或 zsh 会话的环境变量，不需要 `sudo`：
 
 ```zsh
 source scripts/macos/terminal_proxy.sh
@@ -200,7 +206,42 @@ proxy_status
 proxy_off
 ```
 
-建议把 `source` 写入 `~/.zshrc`。默认端口为 7890，可用 `MIHOMO_PROXY_PORT` 覆盖。
+建议把 `source` 写入 Bash 的 `~/.bashrc` 或 zsh 的 `~/.zshrc`。默认端口为 7890，可用 `MIHOMO_PROXY_PORT` 覆盖。
+
+## Linux
+
+### 安装配置
+
+生成、验证并安装配置：
+
+```bash
+bash scripts/linux/install_config.sh
+```
+
+不要用 `sudo` 运行安装配置脚本。它会把配置写入当前用户的 Linuxbrew 目录，并通过 `brew services` 管理用户级 systemd 服务。
+
+首次安装服务可执行：
+
+```bash
+brew services start mihomo
+```
+
+之后每次更新配置只需再次运行 `install_config.sh`；脚本会重启服务。
+
+### 使用终端代理
+
+终端代理只修改当前 Bash 或 zsh 会话的环境变量，不需要 `sudo`：
+
+```zsh
+source scripts/linux/terminal_proxy.sh
+proxy_on
+proxy_status
+proxy_off
+```
+
+建议把 `source` 写入 Bash 的 `~/.bashrc` 或 zsh 的 `~/.zshrc`。默认端口为 7890，可用 `MIHOMO_PROXY_PORT` 覆盖。
+
+Linux 没有统一的系统代理命令，因此未提供与 macOS `networksetup` 对应的全局代理脚本。若需要图形桌面的系统代理，请按使用的桌面环境（例如 GNOME 或 KDE）单独实现。
 
 ## 排查问题
 
