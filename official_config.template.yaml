@@ -83,6 +83,11 @@ dns:
   proxy-server-nameserver:
     - https://223.5.5.5/dns-query
     - https://223.6.6.6/dns-query
+  # MESL 节点域名使用订阅配置提供的 DNS；仅用于 provider/mesl 分支。
+  proxy-server-nameserver-policy:
+    '+.911-gt2-rs.com':
+      - https://zone.rlose.com:39933/api-query#DIRECT
+      - https://radar.rlose.com/api-query#DIRECT
   direct-nameserver:
     - https://223.5.5.5/dns-query
     - https://223.6.6.6/dns-query
