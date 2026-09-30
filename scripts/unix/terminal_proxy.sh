@@ -12,22 +12,22 @@ proxy_on() {
     local host="127.0.0.1"
     local port="${1:-${MIHOMO_PROXY_PORT:-7890}}"
 
+    # no_proxy 复用统一的 bypass 数据源（每行一项，转成逗号分隔）。
+    if command -v uv >/dev/null 2>&1; then
+        local no_proxy_value
+        no_proxy_value="$(set -o pipefail; uv run --script "$MIHOMO_RESOLVE_PROXY_BYPASS_SCRIPT" --platform "$MIHOMO_BYPASS_PLATFORM" | paste -sd, -)" || return $?
+        export no_proxy="$no_proxy_value"
+        export NO_PROXY="$no_proxy_value"
+    else
+        printf '警告: 未找到 uv，跳过 no_proxy 设置\n' >&2
+    fi
+
     export http_proxy="http://$host:$port"
     export https_proxy="http://$host:$port"
     export all_proxy="socks5://$host:$port"
     export HTTP_PROXY="$http_proxy"
     export HTTPS_PROXY="$https_proxy"
     export ALL_PROXY="$all_proxy"
-
-    # no_proxy 复用统一的 bypass 数据源（每行一项，转成逗号分隔）。
-    if command -v uv >/dev/null 2>&1; then
-        local no_proxy_value
-        no_proxy_value="$(uv run --script "$MIHOMO_RESOLVE_PROXY_BYPASS_SCRIPT" --platform "$MIHOMO_BYPASS_PLATFORM" | paste -sd, -)"
-        export no_proxy="$no_proxy_value"
-        export NO_PROXY="$no_proxy_value"
-    else
-        printf '警告: 未找到 uv，跳过 no_proxy 设置\n' >&2
-    fi
 
     printf '终端代理已开启: %s:%s\n' "$host" "$port"
 }
