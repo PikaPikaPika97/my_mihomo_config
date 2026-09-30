@@ -33,7 +33,7 @@ PRIVATE_NETWORKS = {
         "localhost",
         "127.0.0.1",
         "10.*",
-        "172.16.*",
+        *(f"172.{i}.*" for i in range(16, 32)),
         "192.168.*",
     ],
     "linux": [
