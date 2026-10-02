@@ -106,10 +106,17 @@ uv run --script scripts/resolve_proxy_bypass.py --platform linux
 
 - 任务名 `mihomo`
 - 用户登录时触发
-- 使用最高权限运行
+- 以 `SYSTEM` 身份、使用最高权限运行
 - 程序 `mihomo-windows-amd64.exe`
 - 参数 `-d .\ -f official_config.yaml`
 - 工作目录为仓库根目录
+
+任务有两个动作，按顺序执行：
+
+1. 把仓库目录的完整性标签复位为 `Medium`
+2. 启动内核
+
+第一个动作用来抵消 AI 沙箱留下的低完整性标签，原因见「排查问题」。
 
 仓库当前使用以下默认路径：
 
@@ -250,6 +257,10 @@ Linux 没有统一的系统代理命令，因此未提供与 macOS `networksetup
 - 远端代理失败时，检查 `RemoteServer` 地址和端口
 - 计划任务查询显示不存在时，先用管理员 PowerShell 重试
 - 修改端口后，检查配置文件和控制模块中的端口是否一致
+- 计划任务返回 `0xC0000142` 且 mihomo 未启动时，检查仓库目录的完整性标签：以 `workspace-write` 模式运行的 AI 沙箱会给工作区目录打上 `Low` 标签，`SYSTEM` 计划任务无法直接启动其中的可执行文件
+  - 检查：`icacls .`，输出里出现 `Mandatory Label\Low Mandatory Level` 即命中
+  - 修复（管理员）：`icacls . /setintegritylevel (OI)(CI)Medium /T /C /Q`
+  - `mihomo` 任务的第一个动作会自动执行这条修复，正常情况下不需要手工处理
 
 ## 配置参考
 
