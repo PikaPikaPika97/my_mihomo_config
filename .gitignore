@@ -3,7 +3,6 @@
 !/.gitattributes
 !/README.md
 !/CONTEXT.md
-!/mihomo.xml
 !/official_config.template.yaml
 !/config.local.example.yaml
 !/my_config.yaml
