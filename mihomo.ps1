@@ -10,7 +10,9 @@ param(
     [Parameter(ParameterSetName = 'State')]
     [string]$RemoteServer,
 
-    [switch]$ShowNotification
+    [switch]$ShowNotification,
+
+    [string]$ProxyBypassFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,7 +61,7 @@ function Get-MihomoStateMessage {
 }
 
 try {
-    Import-Module "$PSScriptRoot\scripts\windows\MihomoControl.psm1" -Force
+    Import-Module "$PSScriptRoot\scripts\windows\MihomoControl.psm1" -ArgumentList $ProxyBypassFile -Force
 
     if ($ToggleLocal) {
         $reachedState = Switch-MihomoLocalMode
