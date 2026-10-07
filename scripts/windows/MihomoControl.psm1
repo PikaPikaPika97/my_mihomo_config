@@ -1,3 +1,5 @@
+param([string]$ProxyBypassFile)
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
@@ -180,6 +182,10 @@ function Enable-SystemProxyServer {
 
 function Get-SystemProxyOverride {
     if ($null -eq $script:ProxyOverride) {
+        if ($ProxyBypassFile) {
+            $script:ProxyOverride = (Get-Content -LiteralPath $ProxyBypassFile -Raw).Trim()
+            return $script:ProxyOverride
+        }
         try {
             $output = & uv run --script $script:ResolveProxyBypassScript --platform windows
             if ($LASTEXITCODE -ne 0) {

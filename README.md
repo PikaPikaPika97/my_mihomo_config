@@ -1,6 +1,6 @@
 # mihomo 配置仓库
 
-本仓库保存 mihomo 配置模板、控制脚本和计划任务定义。配置步骤在所有平台相同，使用方式按平台分节说明。你需要自备私有配置和 mihomo 可执行文件。
+本仓库保存 mihomo 配置模板、控制脚本和安装脚本。配置步骤在所有平台相同，使用方式按平台分节说明。你需要自备私有配置和 mihomo 可执行文件。
 
 ## 准备工具
 
@@ -94,37 +94,45 @@ uv run --script scripts/resolve_proxy_bypass.py --platform linux
 
 ## Windows
 
-### 启动 mihomo
+### 安装配置和内核
+
+在当前用户的管理员 PowerShell 7 中运行（使用 UAC 提升当前账户，不要换成另一个管理员账户）：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install_config.ps1
+```
+
+默认从仓库根目录读取 `mihomo-windows-amd64.exe`。也可以指定内核来源：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install_config.ps1 -MihomoExecutable 'D:\Downloads\mihomo-windows-amd64.exe'
+```
+
+脚本生成并校验配置、解析 bypass，然后停止已有内核，部署文件并启动新的 `mihomo` 计划任务。安装失败会报告错误；部署阶段失败后，修复原因并重新运行脚本。
+
+| 安装位置 | 内容 |
+| --- | --- |
+| `%ProgramFiles%\mihomo` | 内核、`mihomo.ps1`、控制模块 |
+| `%ProgramData%\mihomo` | `config.yaml`、生成的 `proxy_bypass.txt`、任务导出 `mihomo.xml`，以及内核下载的规则、订阅、面板和缓存 |
+| 当前用户开始菜单的 `mihomo` 目录 | 本机系统代理、本机 TUN、切换模式、直连和停止快捷方式 |
+
+计划任务使用 `SYSTEM` 最高权限，在开机时启动；程序和工作目录使用安装时计算的绝对路径。快捷方式以管理员权限运行当前用户的控制脚本，系统代理写入该用户的 HKCU。日常操作不再依赖仓库或 uv。
+
+换机器、移动仓库、修改配置或更新内核后，重新运行安装脚本即可。它会替换旧的同名计划任务，无需手改 XML 或快捷方式路径。原仓库中的缓存和面板不迁移，新数据目录会按配置重新下载；自定义配置引用的本地文件需要放入数据目录，或使用绝对路径。
+
+安装后的手动控制命令：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File "$env:ProgramFiles\mihomo\mihomo.ps1" -ProxyBypassFile "$env:ProgramData\mihomo\proxy_bypass.txt" -State LocalSystemProxy
+```
+
+### 前台调试
 
 前台启动适合调试：
 
 ```powershell
 .\mihomo-windows-amd64.exe -d .\ -f .\official_config.yaml
 ```
-
-日常使用建议导入 `mihomo.xml`，或手动创建计划任务。计划任务需要以下设置：
-
-- 任务名 `mihomo`
-- 用户登录时触发
-- 以 `SYSTEM` 身份、使用最高权限运行
-- 程序 `mihomo-windows-amd64.exe`
-- 参数 `-d .\ -f official_config.yaml`
-- 工作目录为仓库根目录
-
-任务有两个动作，按顺序执行：
-
-1. 把仓库目录的完整性标签复位为 `Medium`
-2. 启动内核
-
-第一个动作用来抵消 AI 沙箱留下的低完整性标签，原因见「排查问题」。
-
-仓库当前使用以下默认路径：
-
-```text
-C:\Users\YYH\OneDrive\Software\mihomo
-```
-
-迁移仓库后，同步更新 `mihomo.xml` 和控制脚本中的路径。
 
 ### 切换代理状态
 
@@ -154,7 +162,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\mihomo.ps1 -ToggleLocal
 
 `ToggleLocal` 只接受完整的本机系统代理状态或本机 TUN 状态。它在直连、远端、停止或混合状态下拒绝操作。此时请显式指定 `-State`。
 
-快捷方式使用 `-ShowNotification` 显示结果。手动运行默认不弹窗。
+快捷方式使用 `-ShowNotification` 显示结果。手动运行默认不弹窗。上面的仓库命令在启用系统代理时通过 uv 解析 bypass；安装后的快捷方式使用安装时生成的 bypass 文件。
 
 ### 验证 Windows 状态
 
@@ -257,10 +265,7 @@ Linux 没有统一的系统代理命令，因此未提供与 macOS `networksetup
 - 远端代理失败时，检查 `RemoteServer` 地址和端口
 - 计划任务查询显示不存在时，先用管理员 PowerShell 重试
 - 修改端口后，检查配置文件和控制模块中的端口是否一致
-- 计划任务返回 `0xC0000142` 且 mihomo 未启动时，检查仓库目录的完整性标签：以 `workspace-write` 模式运行的 AI 沙箱会给工作区目录打上 `Low` 标签，`SYSTEM` 计划任务无法直接启动其中的可执行文件
-  - 检查：`icacls .`，输出里出现 `Mandatory Label\Low Mandatory Level` 即命中
-  - 修复（管理员）：`icacls . /setintegritylevel (OI)(CI)Medium /T /C /Q`
-  - `mihomo` 任务的第一个动作会自动执行这条修复，正常情况下不需要手工处理
+- 旧任务返回 `0xC0000142` 时，可能是 AI 沙箱给工作区留下了 `Low` 完整性标签。旧方案递归设为 `Medium` 虽能启动内核，也会限制内核进程的完整性级别，使 TUN 报 `A required privilege is not held by the client`，即使任务使用 SYSTEM 也会失败。重新运行 Windows 安装脚本迁移到独立安装目录；脚本写入文件内容并在安装时将内核标记为 `High`，任务启动时不再修改仓库 ACL。
 
 ## 配置参考
 
@@ -296,6 +301,7 @@ Linux 没有统一的系统代理命令，因此未提供与 macOS `networksetup
 - `scripts/resolve_proxy_bypass.py` 生成各平台使用的 bypass 列表
 - `mihomo.ps1` 是 Windows 命令入口
 - `scripts/windows/MihomoControl.psm1` 管理 Windows 目标代理状态
+- `scripts/windows/install_config.ps1` 部署 Windows 程序和配置，注册计划任务并生成快捷方式
 - `CONTEXT.md` 定义代理控制领域词汇
 
 ### Windows 模块分工
