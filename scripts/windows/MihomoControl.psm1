@@ -128,14 +128,33 @@ function Set-TunMode {
 }
 
 function Refresh-WinInetProxy {
-    rundll32.exe wininet.dll,InternetSetOptionA 0 39 0 0 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "WinINet 设置变更通知失败，退出码: $LASTEXITCODE"
+    if (-not ('MihomoControl.WinInet' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+namespace MihomoControl
+{
+    public static class WinInet
+    {
+        [DllImport("wininet.dll", EntryPoint = "InternetSetOptionW", ExactSpelling = true, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool InternetSetOption(IntPtr hInternet, uint dwOption, IntPtr lpBuffer, uint dwBufferLength);
+    }
+}
+'@
     }
 
-    rundll32.exe wininet.dll,InternetSetOptionA 0 37 0 0 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "WinINet 设置刷新失败，退出码: $LASTEXITCODE"
+    # INTERNET_OPTION_SETTINGS_CHANGED
+    if (-not [MihomoControl.WinInet]::InternetSetOption([IntPtr]::Zero, 39, [IntPtr]::Zero, 0)) {
+        $win32Error = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        throw "WinINet 设置变更通知失败，Win32 错误码: $win32Error"
+    }
+
+    # INTERNET_OPTION_REFRESH
+    if (-not [MihomoControl.WinInet]::InternetSetOption([IntPtr]::Zero, 37, [IntPtr]::Zero, 0)) {
+        $win32Error = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        throw "WinINet 设置刷新失败，Win32 错误码: $win32Error"
     }
 }
 
