@@ -36,6 +36,19 @@ Get-Process -Name mihomo-windows-amd64 -ErrorAction SilentlyContinue |
 
 Write-Host "部署程序到 $installDirectory，配置到 $dataDirectory"
 $null = New-Item -ItemType Directory -Path "$installDirectory\scripts\windows", $dataDirectory -Force
+# 数据只供 SYSTEM 内核和提升后的管理员快捷方式访问；替换 DACL，移除旧显式授权。
+$dataAcl = [System.Security.AccessControl.DirectorySecurity]::new()
+$dataAcl.SetSecurityDescriptorSddlForm(
+    'D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)',
+    [System.Security.AccessControl.AccessControlSections]::Access
+)
+Set-Acl -LiteralPath $dataDirectory -AclObject $dataAcl
+# 升级时让已有内容重新继承安全 DACL（包括关闭了继承的文件/目录）。
+# 仅重置子项，不能对数据根目录 /reset，否则会重新继承 ProgramData 的权限。
+Get-ChildItem -LiteralPath $dataDirectory -Force | ForEach-Object {
+    & icacls $_.FullName /reset /T /L /Q
+    if ($LASTEXITCODE -ne 0) { throw "收紧数据文件权限失败: $($_.FullName)，退出码: $LASTEXITCODE" }
+}
 # 写入内容而非复制工作区 ACL，避免继承源文件的 Low/Medium 完整性标签。
 $executableBytes = [System.IO.File]::ReadAllBytes($sourceExecutable)
 [System.IO.File]::WriteAllBytes($installedExecutable, $executableBytes)
