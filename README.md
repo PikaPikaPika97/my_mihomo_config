@@ -302,7 +302,7 @@ Linux 没有统一的系统代理命令，因此未提供与 macOS `networksetup
 - `mihomo.ps1` 是 Windows 命令入口
 - `scripts/windows/MihomoControl.psm1` 管理 Windows 目标代理状态
 - `scripts/windows/install_config.ps1` 部署 Windows 程序和配置，注册计划任务并生成快捷方式
-- `CONTEXT.md` 定义代理控制领域词汇
+- `GLOSSARY.md` 定义代理控制领域词汇
 
 ### Windows 模块分工
 
