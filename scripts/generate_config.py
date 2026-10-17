@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import copy
 import sys
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from ruamel.yaml import YAML
@@ -50,17 +50,48 @@ def load_yaml(yaml: YAML, path: Path):
     return data
 
 
+def assert_no_merge_keys(value, path="config") -> None:
+    """Reject merge keys anywhere in the local overlay."""
+    if isinstance(value, Mapping):
+        # ruamel resolves ``<<`` into _yaml_merge, so a plain key scan misses it.
+        if getattr(value, "_yaml_merge", None):
+            raise ValueError(f"{path} 不支持 YAML merge key <<；请写显式键。")
+        for key, child in value.items():
+            if key == "<<":
+                raise ValueError(f"{path} 不支持 YAML merge key <<；请写显式键。")
+            assert_no_merge_keys(child, f"{path}.{key}")
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for index, child in enumerate(value):
+            assert_no_merge_keys(child, f"{path}[{index}]")
+
+
 def deep_merge(base, overlay):
-    # 递归合并嵌套映射；overlay 只覆盖指定键，其他结构保持模板原样。
-    if isinstance(base, Mapping) and isinstance(overlay, Mapping):
-        merged = copy.deepcopy(base)
-        for key, value in overlay.items():
-            if key in merged:
-                merged[key] = deep_merge(merged[key], value)
-            else:
-                merged[key] = copy.deepcopy(value)
-        return merged
-    return copy.deepcopy(overlay)
+    """Merge overlay into base in place.
+
+    The template uses YAML anchors/merge keys.  Deep-copying the base breaks
+    ruamel's alias relationships and makes the dumper expand ``<<: *domain``
+    into a merge key plus duplicated fields.  The template is freshly loaded
+    for each run, so mutating it preserves anchors, aliases and comments.
+    """
+    if not isinstance(base, Mapping) or not isinstance(overlay, Mapping):
+        raise ValueError("配置的顶层结构必须是映射。")
+
+    assert_no_merge_keys(overlay)
+
+    explicit = dict(base.non_merged_items()) if hasattr(base, "non_merged_items") else base
+    for key, value in overlay.items():
+        if key in explicit and isinstance(explicit[key], Mapping) and isinstance(value, Mapping):
+            deep_merge(explicit[key], value)
+        elif key in base and isinstance(base[key], Mapping) and isinstance(value, Mapping):
+            # The key is inherited through <<; merge a detached copy so fields
+            # not mentioned by the overlay are not discarded.
+            inherited = copy.deepcopy(base[key])
+            deep_merge(inherited, value)
+            base[key] = inherited
+        else:
+            # Assigning an explicit key overrides a value inherited via <<.
+            base[key] = copy.deepcopy(value)
+    return base
 
 
 def validate_config(config) -> None:
