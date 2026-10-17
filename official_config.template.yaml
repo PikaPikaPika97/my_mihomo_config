@@ -67,10 +67,10 @@ dns:
     - +.msftconnecttest.com
     - +.msftncsi.com
 
-    - connectivity-check_domain
-    - private_domain
-    - category-ntp_domain
-    - cn_domain
+    - "rule-set:connectivity-check_domain"
+    - "rule-set:private_domain"
+    - "rule-set:category-ntp_domain"
+    - "rule-set:cn_domain"
   default-nameserver:
     - 223.5.5.5
     - 223.6.6.6
@@ -331,8 +331,8 @@ rules:
   - MATCH,其他
 
 rule-anchor:
-  ip: &ip { type: http, interval: 86400, behavior: ipcidr, format: mrs }
-  domain: &domain { type: http, interval: 86400, behavior: domain, format: mrs }
+  ip: &ip { type: http, interval: 86400, behavior: ipcidr, format: mrs, proxy: 默认 }
+  domain: &domain { type: http, interval: 86400, behavior: domain, format: mrs, proxy: 默认 }
 rule-providers:
   private_domain:
     <<: *domain

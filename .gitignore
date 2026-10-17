@@ -1,22 +1,24 @@
-/*
-!/.gitignore
-!/.gitattributes
-!/README.md
-!/CONTEXT.md
-!/official_config.template.yaml
-!/config.local.example.yaml
-!/my_config.yaml
-!/proxy_bypass.yaml
-!/proxy_bypass.local.example.yaml
-!/mihomo.ps1
-!/scripts/
-!/scripts/generate_config.py
-!/scripts/resolve_proxy_bypass.py
-!/scripts/windows/MihomoControl.psm1
-
-/official_config.yaml
+# 本机私有数据
 /config.local.yaml
+/official_config.yaml
+/official_config.yaml.tmp
 /proxy_bypass.local.yaml
+
+# 内核和面板下载的数据
+/proxy_providers/
+/rules/
+/ui/
+/cache.db
+
+# 本机工具和备份
+/mihomo-windows-amd64.exe
+/meta-backup/
+
+# Python
 /.venv/
-/__pycache__/
-/scripts/__pycache__/
+__pycache__/
+*.pyc
+
+# 系统杂物
+.DS_Store
+Thumbs.db
