@@ -11,6 +11,7 @@ $script:MihomoConfig = @{
     RegistryPath      = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
     ProcessName       = 'mihomo-windows-amd64'
     StartupTimeoutSec = 15
+    StopTimeoutSec    = 10
     RequestTimeoutSec = 3
     RetryCount        = 3
     RetryIntervalMs   = 400
@@ -300,6 +301,24 @@ function Test-LocalMihomoRunning {
     return $processes.Count -gt 0
 }
 
+function Wait-MihomoCoreStopped {
+    param(
+        [int]$TimeoutSec = 10
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        $task = Get-MihomoScheduledTask
+        $processes = @(Get-Process -Name $script:MihomoConfig.ProcessName -ErrorAction SilentlyContinue)
+        if (($null -eq $task -or $task.State -ne 'Running') -and $processes.Count -eq 0) {
+            return $true
+        }
+        Start-Sleep -Milliseconds 200
+    }
+
+    return $false
+}
+
 function Stop-LocalMihomoCore {
     $failures = [System.Collections.Generic.List[string]]::new()
 
@@ -316,11 +335,16 @@ function Stop-LocalMihomoCore {
     try {
         $processes = @(Get-Process -Name $script:MihomoConfig.ProcessName -ErrorAction SilentlyContinue)
         if ($processes.Count -gt 0) {
+            # 只发一次停止请求；总等待时间由 Wait-MihomoCoreStopped 统一控制。
             $processes | Stop-Process -Force -ErrorAction Stop
         }
     }
     catch {
         $failures.Add("结束残留进程失败: $($_.Exception.Message)")
+    }
+
+    if (-not (Wait-MihomoCoreStopped -TimeoutSec $script:MihomoConfig.StopTimeoutSec)) {
+        $failures.Add("停止超时（$($script:MihomoConfig.StopTimeoutSec) 秒）：计划任务或进程仍在运行")
     }
 
     if ($failures.Count -gt 0) {
@@ -329,15 +353,14 @@ function Stop-LocalMihomoCore {
 }
 
 function Assert-LocalMihomoCoreStopped {
-    $task = Get-MihomoScheduledTask
-    if ($null -ne $task -and $task.State -eq 'Running') {
-        throw "计划任务仍在运行: $($script:MihomoConfig.TaskName)"
+    if (Wait-MihomoCoreStopped -TimeoutSec $script:MihomoConfig.StopTimeoutSec) {
+        return
     }
 
+    $task = Get-MihomoScheduledTask
     $processes = @(Get-Process -Name $script:MihomoConfig.ProcessName -ErrorAction SilentlyContinue)
-    if ($processes.Count -gt 0) {
-        throw "mihomo 进程仍然存在: $($script:MihomoConfig.ProcessName)"
-    }
+    $taskState = if ($null -eq $task) { 'NotFound' } else { $task.State }
+    throw "计划任务或进程仍在运行: task=$taskState, processes=$($processes.Count)"
 }
 
 function Assert-MihomoTargetState {
