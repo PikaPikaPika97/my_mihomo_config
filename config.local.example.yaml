@@ -34,7 +34,7 @@ proxy-providers:
   #     {
   #       enable: true,
   #       url: "https://www.gstatic.com/generate_204",
-  #       interval: 300,
+  #       interval: 3600,
   #       lazy: true,
   #     }
   #   override:
