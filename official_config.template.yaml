@@ -142,7 +142,7 @@ proxy-groups:
   - name: Google
     type: select
     proxies:
-      [AI, 默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
+      [默认, AI, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
 
   - name: OpenAI
     type: select
@@ -283,9 +283,9 @@ rules:
   - RULE-SET,private_ip,直连,no-resolve
   #####
   - DOMAIN-SUFFIX,ping0.cc,AI
-  - DOMAIN-SUFFIX,ipdata.co,AI
-  - DOMAIN-SUFFIX,pingip.cn,AI
-  - DOMAIN-SUFFIX,ipip.net,AI
+  - DOMAIN-SUFFIX,ipdata.co,默认
+  - DOMAIN-SUFFIX,pingip.cn,默认
+  - DOMAIN-SUFFIX,ipip.net,默认
   - DOMAIN-SUFFIX,teracloud.jp,其他
   - DOMAIN,stun.l.google.com,直连
   - DOMAIN-SUFFIX,edu.cn,直连
