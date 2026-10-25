@@ -147,7 +147,7 @@ proxy-groups:
   - name: Google
     type: select
     proxies:
-      [AI, 默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
+      [默认, AI, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
 
   - name: OpenAI
     type: select
@@ -207,37 +207,37 @@ proxy-groups:
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)香港|香江|港|香|hk|hongkong|hong kong"
+    filter: '(?i)🇭🇰|香港|香江|港(?:[0-9]+|[-_ ]|$)|hong[ _-]*kong|(?:^|[^a-z])hk[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 台湾
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)台湾|台|tw|taiwan"
+    filter: '(?i)🇹🇼|台湾|臺灣|台北|台中|高雄|台(?:[0-9]+|[-_ ]|$)|taiwan|(?:^|[^a-z])tw[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 日本
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)日本|东京|jp|japan"
+    filter: '(?i)🇯🇵|日本|东京|東京|大阪|japan|tokyo|osaka|(?:^|[^a-z])jp[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 美国
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)美国|西美|美|us|unitedstates|united states"
+    filter: '(?i)🇺🇸|美国|美國|美西|美东|洛杉矶|西雅图|纽约|美(?:[0-9]+|[-_ ]|$)|united[ _-]*states|(?:^|[^a-z])(?:us|usa)[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 新加坡
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)新加坡|狮城|新加|狮|sg|singapore"
+    filter: '(?i)🇸🇬|新加坡|狮城|獅城|新(?:[0-9]+|[-_ ]|$)|singapore|(?:^|[^a-z])sg[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 其它地区
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|香港|香江|港|香|hk|hongkong|hong kong|台湾|台|tw|taiwan|日本|东京|jp|japan|新加坡|狮城|新加|狮|sg|singapore|美国|西美|美|us|unitedstates|united states)).*"
+    exclude-filter: '(?i)🇨🇳|(?:🇭🇰|香港|香江|港(?:[0-9]+|[-_ ]|$)|hong[ _-]*kong|(?:^|[^a-z])hk[a-z0-9_-]*(?:$|[^a-z]))|(?:🇹🇼|台湾|臺灣|台北|台中|高雄|台(?:[0-9]+|[-_ ]|$)|taiwan|(?:^|[^a-z])tw[a-z0-9_-]*(?:$|[^a-z]))|(?:🇯🇵|日本|东京|東京|大阪|japan|tokyo|osaka|(?:^|[^a-z])jp[a-z0-9_-]*(?:$|[^a-z]))|(?:🇺🇸|美国|美國|美西|美东|洛杉矶|西雅图|纽约|美(?:[0-9]+|[-_ ]|$)|united[ _-]*states|(?:^|[^a-z])(?:us|usa)[a-z0-9_-]*(?:$|[^a-z]))|(?:🇸🇬|新加坡|狮城|獅城|新(?:[0-9]+|[-_ ]|$)|singapore|(?:^|[^a-z])sg[a-z0-9_-]*(?:$|[^a-z]))'
 
   - name: 全部节点
     type: select
@@ -248,12 +248,15 @@ proxy-groups:
     type: url-test
     include-all: true
     exclude-type: direct
+    exclude-filter: '^\[AI-ONLY\]'
     url: "https://www.gstatic.com/generate_204"
     interval: 600
     tolerance: 10
 
   - name: AI
     type: select
+    include-all: true
+    filter: '^\[AI-ONLY\]'
     proxies:
       - AI-AUTO(无HK)
       - 美国
@@ -265,7 +268,7 @@ proxy-groups:
 
   - name: AI-AUTO(无HK)
     type: url-test
-    exclude-filter: "(?i)港|香|hk|hongkong|hong kong" # 排除香港地区节点
+    exclude-filter: '(?i)^\[AI-ONLY\]|🇭🇰|香港|香江|港(?:[0-9]+|[-_ ]|$)|hong[ _-]*kong|(?:^|[^a-z])hk[a-z0-9_-]*(?:$|[^a-z])'
     include-all: true
     exclude-type: direct
     url: "https://www.gstatic.com/generate_204"
