@@ -202,37 +202,37 @@ proxy-groups:
     type: select
     include-all: true
     exclude-type: direct
-    filter: '(?i)🇭🇰|香港|香江|hong[ _-]*kong|(?:^|[^a-z])(?:hk|hkg)[0-9]*(?:$|[^a-z])'
+    filter: '(?i)🇭🇰|香港|香江|港(?:[0-9]+|[-_ ]|$)|hong[ _-]*kong|(?:^|[^a-z])hk[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 台湾
     type: select
     include-all: true
     exclude-type: direct
-    filter: '(?i)🇹🇼|台湾|臺灣|台北|台中|高雄|taiwan|(?:^|[^a-z])tw[0-9]*(?:$|[^a-z])'
+    filter: '(?i)🇹🇼|台湾|臺灣|台北|台中|高雄|台(?:[0-9]+|[-_ ]|$)|taiwan|(?:^|[^a-z])tw[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 日本
     type: select
     include-all: true
     exclude-type: direct
-    filter: '(?i)🇯🇵|日本|东京|東京|大阪|japan|tokyo|osaka|(?:^|[^a-z])jp[0-9]*(?:$|[^a-z])'
+    filter: '(?i)🇯🇵|日本|东京|東京|大阪|japan|tokyo|osaka|(?:^|[^a-z])jp[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 美国
     type: select
     include-all: true
     exclude-type: direct
-    filter: '(?i)🇺🇸|美国|美國|美西|美东|洛杉矶|西雅图|纽约|united[ _-]*states|(?:^|[^a-z])(?:us|usa)[0-9]*(?:$|[^a-z])'
+    filter: '(?i)🇺🇸|美国|美國|美西|美东|洛杉矶|西雅图|纽约|美(?:[0-9]+|[-_ ]|$)|united[ _-]*states|(?:^|[^a-z])(?:us|usa)[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 新加坡
     type: select
     include-all: true
     exclude-type: direct
-    filter: '(?i)🇸🇬|新加坡|狮城|獅城|singapore|(?:^|[^a-z])sg[0-9]*(?:$|[^a-z])'
+    filter: '(?i)🇸🇬|新加坡|狮城|獅城|新(?:[0-9]+|[-_ ]|$)|singapore|(?:^|[^a-z])sg[a-z0-9_-]*(?:$|[^a-z])'
 
   - name: 其它地区
     type: select
     include-all: true
     exclude-type: direct
-    exclude-filter: '(?i)🇭🇰|香港|香江|hong[ _-]*kong|(?:^|[^a-z])(?:hk|hkg)[0-9]*(?:$|[^a-z])|🇹🇼|台湾|臺灣|台北|台中|高雄|taiwan|(?:^|[^a-z])tw[0-9]*(?:$|[^a-z])|🇯🇵|日本|东京|東京|大阪|japan|tokyo|osaka|(?:^|[^a-z])jp[0-9]*(?:$|[^a-z])|🇺🇸|美国|美國|美西|美东|洛杉矶|西雅图|纽约|united[ _-]*states|(?:^|[^a-z])(?:us|usa)[0-9]*(?:$|[^a-z])|🇸🇬|新加坡|狮城|獅城|singapore|(?:^|[^a-z])sg[0-9]*(?:$|[^a-z])'
+    exclude-filter: '(?i)(?:🇭🇰|香港|香江|港(?:[0-9]+|[-_ ]|$)|hong[ _-]*kong|(?:^|[^a-z])hk[a-z0-9_-]*(?:$|[^a-z]))|(?:🇹🇼|台湾|臺灣|台北|台中|高雄|台(?:[0-9]+|[-_ ]|$)|taiwan|(?:^|[^a-z])tw[a-z0-9_-]*(?:$|[^a-z]))|(?:🇯🇵|日本|东京|東京|大阪|japan|tokyo|osaka|(?:^|[^a-z])jp[a-z0-9_-]*(?:$|[^a-z]))|(?:🇺🇸|美国|美國|美西|美东|洛杉矶|西雅图|纽约|美(?:[0-9]+|[-_ ]|$)|united[ _-]*states|(?:^|[^a-z])(?:us|usa)[a-z0-9_-]*(?:$|[^a-z]))|(?:🇸🇬|新加坡|狮城|獅城|新(?:[0-9]+|[-_ ]|$)|singapore|(?:^|[^a-z])sg[a-z0-9_-]*(?:$|[^a-z]))'
 
   - name: 全部节点
     type: select
@@ -263,7 +263,7 @@ proxy-groups:
 
   - name: AI-AUTO(无HK)
     type: url-test
-    exclude-filter: '(?i)^\[AI-ONLY\]|🇭🇰|香港|香江|hong[ _-]*kong|(?:^|[^a-z])(?:hk|hkg)[0-9]*(?:$|[^a-z])' # 不自动使用受限节点或香港节点
+    exclude-filter: '(?i)^\[AI-ONLY\]|🇭🇰|香港|香江|港(?:[0-9]+|[-_ ]|$)|hong[ _-]*kong|(?:^|[^a-z])hk[a-z0-9_-]*(?:$|[^a-z])'
     include-all: true
     exclude-type: direct
     url: "https://www.gstatic.com/generate_204"
@@ -283,9 +283,9 @@ rules:
   - RULE-SET,private_ip,直连,no-resolve
   #####
   - DOMAIN-SUFFIX,ping0.cc,AI
-  - DOMAIN-SUFFIX,ipdata.co,默认
-  - DOMAIN-SUFFIX,pingip.cn,默认
-  - DOMAIN-SUFFIX,ipip.net,默认
+  - DOMAIN-SUFFIX,ipdata.co,AI
+  - DOMAIN-SUFFIX,pingip.cn,AI
+  - DOMAIN-SUFFIX,ipip.net,AI
   - DOMAIN-SUFFIX,teracloud.jp,其他
   - DOMAIN,stun.l.google.com,直连
   - DOMAIN-SUFFIX,edu.cn,直连
