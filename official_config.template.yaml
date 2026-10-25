@@ -142,7 +142,7 @@ proxy-groups:
   - name: Google
     type: select
     proxies:
-      [AI, 默认, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
+      [默认, AI, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]
 
   - name: OpenAI
     type: select
