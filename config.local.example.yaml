@@ -38,6 +38,20 @@ proxy-providers:
   #   override:
   #     additional-prefix: "[your-subscription]"
 
+# 可选：为有独立使用限制的订阅加用途前缀，供策略组过滤。
+# 这是通用示例；请不要把实际订阅链接提交到仓库。
+#
+#   special-provider:
+#     type: http
+#     url: "https://example.com/private-subscription"
+#     interval: 21600
+#     path: ./proxy_providers/special.yaml
+#     override:
+#       additional-prefix: "[AI-ONLY] "
+#
+# 若订阅里所有节点属于同一地区，可以在前缀后附加对应国旗；
+# 混合地区订阅则不要统一标记国家。
+#
 # 机器差异覆盖示例：
 #
 # 台式机热点模式：
