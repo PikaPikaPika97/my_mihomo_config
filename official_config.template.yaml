@@ -202,37 +202,37 @@ proxy-groups:
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)香港|香江|港|香|hk|hongkong|hong kong"
+    filter: '(?i)🇭🇰|香港|香江|hong[ _-]*kong|(?:^|[^a-z])(?:hk|hkg)[0-9]*(?:$|[^a-z])'
 
   - name: 台湾
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)台湾|台|tw|taiwan"
+    filter: '(?i)🇹🇼|台湾|臺灣|台北|台中|高雄|taiwan|(?:^|[^a-z])tw[0-9]*(?:$|[^a-z])'
 
   - name: 日本
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)日本|东京|jp|japan"
+    filter: '(?i)🇯🇵|日本|东京|東京|大阪|japan|tokyo|osaka|(?:^|[^a-z])jp[0-9]*(?:$|[^a-z])'
 
   - name: 美国
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)美国|西美|美|us|unitedstates|united states"
+    filter: '(?i)🇺🇸|美国|美國|美西|美东|洛杉矶|西雅图|纽约|united[ _-]*states|(?:^|[^a-z])(?:us|usa)[0-9]*(?:$|[^a-z])'
 
   - name: 新加坡
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)新加坡|狮城|新加|狮|sg|singapore"
+    filter: '(?i)🇸🇬|新加坡|狮城|獅城|singapore|(?:^|[^a-z])sg[0-9]*(?:$|[^a-z])'
 
   - name: 其它地区
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|香港|香江|港|香|hk|hongkong|hong kong|台湾|台|tw|taiwan|日本|东京|jp|japan|新加坡|狮城|新加|狮|sg|singapore|美国|西美|美|us|unitedstates|united states)).*"
+    exclude-filter: '(?i)🇭🇰|香港|香江|hong[ _-]*kong|(?:^|[^a-z])(?:hk|hkg)[0-9]*(?:$|[^a-z])|🇹🇼|台湾|臺灣|台北|台中|高雄|taiwan|(?:^|[^a-z])tw[0-9]*(?:$|[^a-z])|🇯🇵|日本|东京|東京|大阪|japan|tokyo|osaka|(?:^|[^a-z])jp[0-9]*(?:$|[^a-z])|🇺🇸|美国|美國|美西|美东|洛杉矶|西雅图|纽约|united[ _-]*states|(?:^|[^a-z])(?:us|usa)[0-9]*(?:$|[^a-z])|🇸🇬|新加坡|狮城|獅城|singapore|(?:^|[^a-z])sg[0-9]*(?:$|[^a-z])'
 
   - name: 全部节点
     type: select
