@@ -258,15 +258,6 @@ proxy_off
 
 Linux 没有统一的系统代理命令，因此未提供与 macOS `networksetup` 对应的全局代理脚本。若需要图形桌面的系统代理，请按使用的桌面环境（例如 GNOME 或 KDE）单独实现。
 
-## 排查问题
-
-- TUN 切换失败时，使用管理员权限运行命令
-- 控制器不可达时，检查 `127.0.0.1:9090`
-- 远端代理失败时，检查 `RemoteServer` 地址和端口
-- 计划任务查询显示不存在时，先用管理员 PowerShell 重试
-- 修改端口后，检查配置文件和控制模块中的端口是否一致
-- 旧任务返回 `0xC0000142` 时，可能是 AI 沙箱给工作区留下了 `Low` 完整性标签。旧方案递归设为 `Medium` 虽能启动内核，也会限制内核进程的完整性级别，使 TUN 报 `A required privilege is not held by the client`，即使任务使用 SYSTEM 也会失败。重新运行 Windows 安装脚本迁移到独立安装目录；脚本写入文件内容并在安装时将内核标记为 `High`，任务启动时不再修改仓库 ACL。
-
 ## 配置参考
 
 ### 不提交本机数据
@@ -339,3 +330,10 @@ Windows 控制代码分为一个命令入口和一个状态模块。
 每个 Python 脚本使用 PEP 723 元数据声明 Python 版本和依赖。`uv run --script` 会创建隔离环境并安装所需依赖。
 
 本仓库不使用 `requirements.txt`、`pyproject.toml` 或 `uv.lock` 管理这些单文件脚本。
+
+## 文档引用
+
+- [问题排查](docs/troubleshooting.md)：Selector 选择变化、Windows 任务启动失败和常规检查。
+- [Windows 系统代理与 TUN 同时开启调查](docs/system-proxy-and-tun-research.md)。
+- [系统代理开启时使用 zashboard 的调查](docs/zashboard-official-research.md)。
+- [zashboard TUN 开关源码核查](docs/zashboard-tun-toggle-research.md)。
