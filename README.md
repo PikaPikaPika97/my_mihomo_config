@@ -102,23 +102,27 @@ uv run --script scripts/resolve_proxy_bypass.py --platform linux
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install_config.ps1
 ```
 
-默认从仓库根目录读取 `mihomo-windows-amd64.exe`。也可以指定内核来源：
+不带参数运行时不会替换已安装的内核，只更新配置、脚本和快捷方式。仓库根目录的 `mihomo-windows-amd64.exe` 只在内核尚未安装时用于引导。
+
+需要升级或更换内核时显式指定路径：
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install_config.ps1 -MihomoExecutable 'D:\Downloads\mihomo-windows-amd64.exe'
 ```
 
-脚本生成并校验配置、解析 bypass，然后停止已有内核，部署文件并启动新的 `mihomo` 计划任务。安装失败会报告错误；部署阶段失败后，修复原因并重新运行脚本。
+显式指定路径即视为确认替换，脚本不比较版本。替换前会把旧内核备份到 `%ProgramFiles%\mihomo\meta-backup`，只保留最近 3 份。
+
+脚本生成并校验配置、解析 bypass，然后停止已有内核，部署文件并启动新的 `mihomo` 计划任务。配置校验使用最终会运行的那个内核。安装失败会报告错误；部署阶段失败后，修复原因并重新运行脚本。
 
 | 安装位置 | 内容 |
 | --- | --- |
-| `%ProgramFiles%\mihomo` | 内核、`mihomo.ps1`、控制模块 |
+| `%ProgramFiles%\mihomo` | 内核、`mihomo.ps1`、控制模块；`meta-backup` 保存替换前的旧内核 |
 | `%ProgramData%\mihomo` | `config.yaml`、生成的 `proxy_bypass.txt`、任务导出 `mihomo.xml`，以及内核下载的规则、订阅、面板和缓存 |
 | 当前用户开始菜单的 `mihomo` 目录 | 本机系统代理、本机 TUN、切换模式、直连和停止快捷方式 |
 
 计划任务使用 `SYSTEM` 最高权限，在开机时启动；程序和工作目录使用安装时计算的绝对路径。快捷方式以管理员权限运行当前用户的控制脚本，系统代理写入该用户的 HKCU。日常操作不再依赖仓库或 uv。
 
-换机器、移动仓库、修改配置或更新内核后，重新运行安装脚本即可。它会替换旧的同名计划任务，无需手改 XML 或快捷方式路径。原仓库中的缓存和面板不迁移，新数据目录会按配置重新下载；自定义配置引用的本地文件需要放入数据目录，或使用绝对路径。
+换机器、移动仓库或修改配置后，重新运行安装脚本即可；更新内核时再加 `-MihomoExecutable`。它会替换旧的同名计划任务，无需手改 XML 或快捷方式路径。原仓库中的缓存和面板不迁移，新数据目录会按配置重新下载；自定义配置引用的本地文件需要放入数据目录，或使用绝对路径。
 
 安装后的手动控制命令：
 
@@ -292,7 +296,7 @@ Linux 没有统一的系统代理命令，因此未提供与 macOS `networksetup
 - `scripts/resolve_proxy_bypass.py` 生成各平台使用的 bypass 列表
 - `mihomo.ps1` 是 Windows 命令入口
 - `scripts/windows/MihomoControl.psm1` 管理 Windows 目标代理状态
-- `scripts/windows/install_config.ps1` 部署 Windows 程序和配置，注册计划任务并生成快捷方式
+- `scripts/windows/install_config.ps1` 部署 Windows 配置和脚本；仅在内核缺失或显式指定时部署内核；注册计划任务并生成快捷方式
 - `GLOSSARY.md` 定义代理控制领域词汇
 
 ### Windows 模块分工
