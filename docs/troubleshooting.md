@@ -22,7 +22,7 @@
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install_config.ps1
 ```
 
-当前安装脚本把程序部署到 `%ProgramFiles%\mihomo`，把配置和运行数据放到 `%ProgramData%\mihomo`。脚本写入文件内容，避免复制工作区的 ACL，并在安装时将内核标记为 `High`。计划任务使用独立安装目录中的内核，启动时不再修改仓库 ACL。
+当前安装脚本把程序部署到 `%ProgramFiles%\mihomo`，把配置和运行数据放到 `%ProgramData%\mihomo`。脚本写入文件内容，避免复制工作区的 ACL，并在安装时将内核标记为 `High`；保留已装内核时也会重新标记。计划任务使用独立安装目录中的内核，启动时不再修改仓库 ACL。
 
 安装后，检查计划任务 `mihomo` 的程序路径和数据目录是否指向上述位置，再验证任务启动和 TUN 开关。若仍失败，检查任务返回码和内核日志，继续按实际错误排查。
 
